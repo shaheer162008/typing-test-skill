@@ -20,7 +20,7 @@ export default function DurationLandingPage({ mode, duration, content }: Duratio
         mode={mode}
         eyebrow={isPractice ? `${duration} minute practice` : `${duration} minute test`}
         title={content.heading}
-        description={content.intro}
+        description={content.description}
         primaryHref={runHref}
         primaryLabel={isPractice ? "Start practice" : "Start test"}
       />
@@ -37,6 +37,12 @@ export default function DurationLandingPage({ mode, duration, content }: Duratio
             <p className="mt-3 text-sm leading-6 text-primary/60">{isPractice ? "Practise at your own pace and restart whenever you want." : "Start the timer when you are ready and get your result instantly."}</p>
             <Link href={runHref} className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-black transition hover:bg-primary/85">Start {isPractice ? "practice" : "test"}</Link>
           </div>
+        </section>
+
+        <section className="mt-12 max-w-3xl border-t border-primary/10 pt-8">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">About this session</p>
+          <h2 className="mt-3 text-2xl font-medium tracking-[-0.04em]">{content.heading}</h2>
+          <p className="mt-4 text-sm leading-7 text-primary/55">{content.intro}</p>
         </section>
 
         <section className="mt-12 border-t border-primary/10 pt-8">

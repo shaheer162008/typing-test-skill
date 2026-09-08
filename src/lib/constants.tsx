@@ -27,6 +27,9 @@ export const footerLinks = [
       { name: "Typing Tips", href: "/blogs/typing-tips-improve-speed-accuracy" },
       { name: "Blog", href: "/blogs" },
       { name: "About Us", href: "/about" },
+      { name: "Dashboard", href: "/dashboard" },
+      { name: "Leaderboard", href: "/leaderboard" },
+      { name: "Certificates", href: "/certificates" },
     ],
   },
   {

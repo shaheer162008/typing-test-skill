@@ -1,9 +1,11 @@
-import Link from "next/link";
 import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 import ModeHero from "@/components/mode-hero";
 import ModeFaq from "@/components/mode-faq";
-import { getWordHref, wordCounts } from "@/lib/typing-modes";
+import ModeBenefits from "@/components/mode-benefits";
+import ModeSessionPanel from "@/components/mode-session-panel";
+import WordLessonPicker from "@/components/word-lesson-picker";
+import { getWordHref } from "@/lib/typing-modes";
 
 export type WordPageContent = {
   count: number;
@@ -60,70 +62,56 @@ function HowItWorks() {
   );
 }
 
-function WordSelector({ selected }: { selected?: number }) {
-  return (
-    <section className="border-t border-primary/10 pt-8">
-      <div className="mb-5">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">Choose your passage</p>
-        <h2 className="mt-2 text-2xl font-medium">How many words do you want to type?</h2>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {wordCounts.map((count) => (
-          <Link key={count} href={getWordHref(count)} className={`group rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:border-primary/40 ${selected === count ? "border-primary/40 bg-primary/[0.08]" : "border-primary/15 bg-white/[0.025] hover:bg-white/[0.05]"}`}>
-            <div className="flex items-start justify-between"><span className="text-3xl font-medium tracking-tight">{count}</span><span className="text-primary/35 transition group-hover:text-primary">-&gt;</span></div>
-            <p className="mt-6 text-sm font-medium">{count} words</p>
-            <p className="mt-1 text-xs text-primary/40">Fixed passage, no countdown</p>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function WordTypingHub() {
   return (
-    <PageShell>
+    <div className="min-h-screen bg-[#0a0a0a] text-primary">
+      <Navbar />
       <ModeHero
         mode="words"
         title="Choose your words. Find your flow."
         description="Complete a fixed passage, focus on accuracy, and see how your typing holds up without racing a countdown."
         primaryHref={getWordHref(50)}
         primaryLabel="Try 50 words"
+        sessionPanel={<ModeSessionPanel mode="words" />}
       />
-      <div className="mt-12"><WordSelector /></div>
-      <section className="mt-16 grid gap-8 border-t border-primary/10 pt-8 md:grid-cols-[1fr_0.8fr]">
-        <div><p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">A different kind of typing test</p><h2 className="mt-3 text-2xl font-medium">Complete the text, then read your result.</h2><p className="mt-3 max-w-xl text-sm leading-7 text-primary/50">Unlike a timed typing test, this format has no minute limit. The passage itself sets the finish line, so every word counts toward a useful WPM and accuracy result.</p></div>
-        <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-5"><p className="text-xs uppercase tracking-[0.16em] text-primary/45">Every passage includes</p><ul className="mt-4 space-y-3 text-sm text-primary/65"><li>A fixed word count</li><li>Clear passage progress</li><li>WPM and accuracy feedback</li><li>Automatic completion at the final word</li></ul></div>
-      </section>
+      <ModeBenefits mode="words" />
       <ModeFaq mode="words" />
-    </PageShell>
+      <Footer />
+    </div>
   );
 }
 
 export function WordTypingPage({ content }: { content: WordPageContent }) {
   return (
-    <PageShell>
+    <div className="min-h-screen bg-[#0a0a0a] text-primary">
+      <Navbar />
       <ModeHero
         mode="words"
         eyebrow={`${content.count} word passage`}
         title={`${content.count} words. One clear benchmark.`}
-        description={content.intro}
+        description={content.description}
         primaryHref={getWordHref(content.count)}
-        primaryLabel="View passage options"
+        primaryLabel={`Start ${content.count}-word test`}
+        sessionPanel={<WordLessonPicker wordCount={content.count} />}
       />
-      <div className="mt-12 space-y-12">
-        <WordSelector selected={content.count} />
-        <section className="grid gap-8 border-t border-primary/10 pt-8 md:grid-cols-[0.8fr_1fr]">
+      <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="space-y-12">
+          <section className="grid gap-8 border-t border-primary/10 pt-8 md:grid-cols-[0.8fr_1fr]">
           <div><p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">Good for</p><h2 className="mt-3 text-2xl font-medium">A focused length for your goal.</h2></div>
           <ul className="space-y-3 text-sm leading-7 text-primary/65">{content.goodFor.map((item) => <li key={item} className="border-b border-primary/10 pb-3">{item}</li>)}</ul>
-        </section>
-        <HowItWorks />
-        <ModeFaq mode="words" wordCount={content.count} />
-      </div>
-    </PageShell>
+          </section>
+          <section className="border-t border-primary/10 pt-8">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">About this word typing test</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-medium tracking-[-0.04em]">A fixed finish line makes progress easier to compare.</h2>
+            <p className="mt-5 max-w-3xl text-sm leading-7 text-primary/55">{content.intro}</p>
+          </section>
+          <HowItWorks />
+        </div>
+      </main>
+      <ModeBenefits mode="words" />
+      <ModeFaq mode="words" wordCount={content.count} />
+      <Footer />
+    </div>
   );
 }
 
-function PageShell({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-[#0a0a0a] text-primary"><Navbar /><main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">{children}</main><Footer /></div>;
-}
