@@ -36,11 +36,11 @@ export default function ContactPage() {
               </div>
 
               <div className="space-y-5 pt-3">
-                <div className="flex items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
-                  <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
+                <div className="flex min-w-0 items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
+                  <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
                     <Mail className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm uppercase tracking-[0.14em] text-primary/45">Email</p>
                     <a href="mailto:info@typingtestskill.com" className="mt-2 inline-block text-base font-medium text-primary hover:text-primary/80">
                       info@typingtestskill.com
@@ -48,21 +48,21 @@ export default function ContactPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
-                  <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
+                <div className="flex min-w-0 items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
+                  <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
                     <MapPin className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm uppercase tracking-[0.14em] text-primary/45">Community</p>
                     <p className="mt-2 text-base text-primary/70">Built for learners, professionals, and typing enthusiasts around the world.</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
-                  <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
+                <div className="flex min-w-0 items-start gap-4 rounded-2xl border border-primary/10 bg-black p-4">
+                  <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary">
                     <MessageSquareText className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm uppercase tracking-[0.14em] text-primary/45">Support</p>
                     <p className="mt-2 text-base text-primary/70">We welcome suggestions, partnership ideas, and community feedback from everyone.</p>
                   </div>

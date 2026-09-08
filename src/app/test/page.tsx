@@ -1,5 +1,5 @@
-import TypingTestPage from "@/components/typing-test-page";
+import { redirect } from "next/navigation";
 
 export default function TestRoutePage() {
-  return <TypingTestPage />;
+  redirect("/typing-test");
 }
