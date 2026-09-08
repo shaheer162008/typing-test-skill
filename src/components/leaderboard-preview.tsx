@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { Activity, ArrowUpRight, Crown, Medal, Timer, Zap } from "lucide-react";
 
 const entries = [
@@ -96,13 +97,13 @@ export default function LeaderboardPreview() {
               <Zap className="h-4 w-4 text-primary" strokeWidth={1.7} />
               <span>Your next personal best starts with one test.</span>
             </div>
-            <a
-              href="/leaderboard"
+            <Link
+              href="/typing-test/1-minute"
               className="group inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               View full leaderboard
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-            </a>
+            </Link>
           </div>
         </motion.div>
       </div>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import TypingModeLanding from "@/components/typing-mode-landing";
+import { WordTypingPage, wordPageContent } from "@/components/word-typing-content";
 import { getWordCountFromSlug, wordCounts } from "@/lib/typing-modes";
 
 type PageProps = { params: Promise<{ count: string }> };
@@ -12,11 +12,12 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const count = getWordCountFromSlug((await params).count);
   if (!count) return {};
-  return { title: `${count}-Word Typing Test | WPM and Accuracy`, description: `Take a ${count}-word typing test and get instant WPM, accuracy, and mistake feedback.` };
+  const content = wordPageContent[count];
+  return { title: content.title, description: content.description };
 }
 
 export default async function WordTypingTestPage({ params }: PageProps) {
   const count = getWordCountFromSlug((await params).count);
   if (!count) notFound();
-  return <TypingModeLanding mode="words" wordCount={count} />;
+  return <WordTypingPage content={wordPageContent[count]} />;
 }

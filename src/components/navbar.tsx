@@ -25,7 +25,7 @@ export default function Navbar() {
       <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3" aria-label="Typing Test Skill Home">
-          <Image src="/keyboard.svg" alt="" width={48} height={48} className="h-12 w-12" aria-hidden="true" />
+          <Image src="/icon.png" alt="" width={50} height={50} className="h-auto w-[50px]" aria-hidden="true" />
           <span className="text-xl font-bold tracking-tight text-primary">Typing Test Skill</span>
         </Link>
 

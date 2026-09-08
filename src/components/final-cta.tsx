@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { ArrowRight, Check, LockKeyhole, Play, UserRound } from "lucide-react";
 import { FaGoogle } from "react-icons/fa6";
 
@@ -39,21 +40,21 @@ export default function FinalCta() {
         </div>
 
         <div className="flex flex-col items-start gap-3 sm:flex-row lg:flex-col lg:items-stretch">
-          <a
-            href="/typing-test"
+          <Link
+            href="/typing-test/1-minute"
             className="group inline-flex items-center justify-center gap-3 rounded-full bg-black px-6 py-3 text-sm font-medium text-primary transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
           >
             <Play className="h-4 w-4 fill-current" />
             Take a free test
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
-          <a
-            href="/auth/sign-in"
+          </Link>
+          <Link
+            href="/typing-practice"
             className="inline-flex items-center justify-center gap-2 rounded-full border border-black/25 px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
           >
             <UserRound className="h-4 w-4" />
-            Create free account
-          </a>
+            Practice without signing in
+          </Link>
           <span className="mt-1 inline-flex items-center gap-2 px-2 text-[11px] text-black/50">
             <LockKeyhole className="h-3.5 w-3.5" /> Save records and certificates securely
           </span>

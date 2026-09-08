@@ -20,7 +20,7 @@ export default function Footer() {
           {/* Brand Section */}
           <div className="max-w-sm">
             <Link href="/" className="flex items-center gap-3 mb-4" aria-label="Typing Test Skill Home">
-              <Image src="/keyboard.svg" alt="" width={48} height={48} className="h-12 w-12" aria-hidden="true" />
+              <Image src="/icon.png" alt="" width={50} height={50} className="h-auto w-[50px]" aria-hidden="true" />
               <span className="text-xl font-bold tracking-tight text-primary">Typing Test Skill</span>
             </Link>
 

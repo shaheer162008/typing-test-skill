@@ -1,5 +1,8 @@
 import Link from "next/link";
+import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
+import ModeHero from "@/components/mode-hero";
+import ModeFaq from "@/components/mode-faq";
 import { durations, getDurationHref, getWordHref, modeCopy, type TypingMode, wordCounts } from "@/lib/typing-modes";
 
 type TypingModeHubProps = { mode: TypingMode };
@@ -7,17 +10,19 @@ type TypingModeHubProps = { mode: TypingMode };
 export default function TypingModeHub({ mode }: TypingModeHubProps) {
   const copy = modeCopy[mode];
   const isWords = mode === "words";
+  const isPractice = mode === "practice";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-primary">
       <Navbar />
+      <ModeHero
+        mode={mode}
+        title={isWords ? "Choose your words. Find your flow." : isPractice ? "Practice with purpose. Type with ease." : "Measure the speed in your hands."}
+        description={copy.description}
+        primaryHref={isWords ? getWordHref(50) : getDurationHref(mode, isPractice ? 5 : 1)}
+        primaryLabel={isWords ? "Try 50 words" : isPractice ? "Start 5 minute practice" : "Start 1 minute test"}
+      />
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
-        <header className="max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-primary/45">{copy.label}</p>
-          <h1 className="mt-4 text-4xl font-medium tracking-tight sm:text-6xl">{copy.title}</h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-primary/55">{copy.description}</p>
-        </header>
-
         <section className="mt-12 border-t border-primary/10 pt-8">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
@@ -41,6 +46,8 @@ export default function TypingModeHub({ mode }: TypingModeHubProps) {
           <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-5"><p className="text-xs uppercase tracking-[0.16em] text-primary/45">Every session includes</p><ul className="mt-4 space-y-3 text-sm text-primary/65"><li>Live WPM and accuracy</li><li>Mistake highlighting</li><li>Animated keyboard feedback</li><li>One-click reset and retry</li></ul></div>
         </section>
       </main>
+      <ModeFaq mode={mode} />
+      <Footer />
     </div>
   );
 }

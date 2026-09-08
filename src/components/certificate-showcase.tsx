@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { ArrowRight, Award, CheckCircle2, Download, Share2 } from "lucide-react";
 
 export default function CertificateShowcase() {
   return (
-    <section className="border-t border-primary/10 bg-[#0b0b0a] px-4 py-24 text-primary sm:px-6 md:px-10 md:py-32">
+    <section className="border-t border-primary/10 bg-black px-4 py-24 text-primary sm:px-6 md:px-10 md:py-32">
       <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -31,13 +32,13 @@ export default function CertificateShowcase() {
               <Share2 className="h-3.5 w-3.5 text-primary" /> Shareable
             </span>
           </div>
-          <a
-            href="/certificates"
-            className="group mt-9 inline-flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0a]"
+          <Link
+            href="/typing-test/1-minute"
+            className="group mt-9 inline-flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             See certificate milestones
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
+          </Link>
         </motion.div>
 
         <motion.div
@@ -48,8 +49,8 @@ export default function CertificateShowcase() {
           className="relative aspect-video"
         >
           <div className="absolute -inset-3 border border-primary/10 sm:-inset-5" />
-          <div className="relative h-full bg-primary p-2 text-black shadow-2xl sm:p-3">
-            <div className="flex h-full flex-col border border-black/25 p-4 sm:p-6 md:p-8">
+          <div className="relative h-full bg-[#f7f5ec] p-2 text-[#171716] shadow-2xl sm:p-3">
+            <div className="flex h-full flex-col border border-[#171716]/25 p-4 sm:p-6 md:p-8">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-black/55">
@@ -59,7 +60,7 @@ export default function CertificateShowcase() {
                     Certificate of typing excellence
                   </p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-black/30 sm:h-16 sm:w-16">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#171716]/30 sm:h-16 sm:w-16">
                   <Award className="h-6 w-6 sm:h-8 sm:w-8" strokeWidth={1.4} />
                 </div>
               </div>

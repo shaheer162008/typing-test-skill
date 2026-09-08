@@ -2,12 +2,9 @@
 
 import { motion } from "framer-motion";
 import {
-  Award,
   ArrowUpRight,
-  Gauge,
   Keyboard,
   Timer,
-  Trophy,
   Type,
 } from "lucide-react";
 
@@ -35,32 +32,8 @@ const paths = [
     title: "Word Typing",
     description: "Challenge yourself with word-based tests where every keystroke counts.",
     options: ["25", "50", "75", "100 words"],
-    href: "/word-typing",
+    href: "/word-typing-test",
     icon: Type,
-    accent: "border border-primary/20 bg-white/5 text-primary",
-  },
-  {
-    number: "04",
-    title: "Leaderboard",
-    description: "Find your place among fast typists and give your next session a target.",
-    href: "/leaderboard",
-    icon: Trophy,
-    accent: "border border-primary/20 bg-white/5 text-primary",
-  },
-  {
-    number: "05",
-    title: "Certificates",
-    description: "Turn a personal milestone into proof you can share with the world.",
-    href: "/certificates",
-    icon: Award,
-    accent: "border border-primary/20 bg-white/5 text-primary",
-  },
-  {
-    number: "06",
-    title: "Dashboard",
-    description: "Keep your progress visible and know exactly what to work on next.",
-    href: "/dashboard",
-    icon: Gauge,
     accent: "border border-primary/20 bg-white/5 text-primary",
   },
 ];

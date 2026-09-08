@@ -1,25 +1,26 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { Award, ArrowRight, Gauge, LineChart, Play } from "lucide-react";
 
 const steps = [
   {
     number: "01",
-    title: "Take a test",
-    description: "Choose a timed or word-based challenge and start typing immediately. No setup, no distractions.",
+    title: "Choose your pace",
+    description: "Start with a 1-minute test or choose a longer session that matches your goal.",
     icon: Play,
   },
   {
     number: "02",
-    title: "See your rhythm",
-    description: "Get instant feedback on your WPM, accuracy, errors, and the moments that slow you down.",
+    title: "See your result",
+    description: "Get your WPM, accuracy, errors, and a clear picture of how you typed.",
     icon: Gauge,
   },
   {
     number: "03",
-    title: "Keep improving",
-    description: "Use your progress to choose the next challenge, build consistency, and reach your personal best.",
+    title: "Build consistency",
+    description: "Practice regularly, track your progress, and turn small gains into real speed.",
     icon: LineChart,
   },
 ];
@@ -28,7 +29,7 @@ export default function HowItWorks() {
   return (
     <section className="border-t border-primary/10 bg-black px-4 py-24 text-primary sm:px-6 md:px-10 md:py-32">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+        <div className="grid gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -39,19 +40,19 @@ export default function HowItWorks() {
               How it works
             </p>
             <h2 className="max-w-lg text-4xl font-medium leading-[0.95] tracking-tighter sm:text-5xl md:text-7xl">
-              Small sessions. Real progress.
+              Find the rhythm that takes you further.
             </h2>
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-primary/55">
               Your speed grows through a simple loop: show up, pay attention, and come
               back a little sharper than before.
             </p>
-            <a
+            <Link
               href="/typing-test"
               className="group mt-8 inline-flex items-center gap-3 border-b border-primary/40 pb-2 text-sm font-medium transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Start your first test
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </a>
+            </Link>
           </motion.div>
 
           <div>
@@ -66,18 +67,18 @@ export default function HowItWorks() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="group relative flex min-h-64 flex-col border border-primary/15 bg-white/2 p-5 transition-colors hover:border-primary/40 hover:bg-white/4 sm:p-7"
+                    className="group relative flex min-h-56 flex-col border border-primary/15 bg-white/2 p-5 transition-colors hover:border-primary/40 hover:bg-white/4 sm:p-6"
                   >
                     <div className="flex items-start justify-between">
                       <span className="text-xs font-medium tracking-[0.16em] text-primary/40">
                         {step.number}
                       </span>
-                      <span className="flex h-12 w-12 items-center justify-center border border-primary/20 bg-black text-primary transition-colors group-hover:border-primary/60 sm:h-14 sm:w-14">
-                        <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.5} />
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-black text-primary transition-colors group-hover:border-primary/60 sm:h-11 sm:w-11">
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.5} />
                       </span>
                     </div>
-                    <div className="mt-auto pt-12">
-                      <h3 className="text-2xl font-medium tracking-[-0.04em]">{step.title}</h3>
+                    <div className="mt-auto pt-8">
+                      <h3 className="text-xl font-medium tracking-[-0.04em] sm:text-2xl">{step.title}</h3>
                       <p className="mt-3 max-w-lg text-sm leading-relaxed text-primary/55">
                         {step.description}
                       </p>

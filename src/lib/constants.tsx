@@ -1,9 +1,10 @@
 export const navLinks = [
+  { name: "Home", href: "/" },
   { name: "Typing Test", href: "/typing-test" },
   { name: "Typing Practice", href: "/typing-practice" },
-  { name: "Word Typing", href: "/word-typing" },
+  { name: "Word Typing", href: "/word-typing-test" },
   { name: "WPM Guide", href: "/blogs/good-wpm-typing-speed-guide" },
-  { name: "Typing Tips", href: "/tips" },
+  { name: "Typing Tips", href: "/blogs/typing-tips-improve-speed-accuracy" },
   { name: "Blog", href: "/blogs" },
 ];
 
@@ -11,21 +12,21 @@ export const footerLinks = [
   {
     title: "Tests & Practice",
     links: [
+      { name: "Home", href: "/" },
       { name: "Typing Test", href: "/typing-test" },
       { name: "Typing Practice", href: "/typing-practice" },
-      { name: "Word Typing", href: "/word-typing" },
-      { name: "Leaderboard", href: "/leaderboard" },
-      { name: "Certificates", href: "/certificates" },
+      { name: "Word Typing", href: "/word-typing-test" },
+      { name: "WPM Guide", href: "/blogs/good-wpm-typing-speed-guide" },
+      { name: "Typing Tips", href: "/blogs/typing-tips-improve-speed-accuracy" },
     ],
   },
   {
     title: "Learn & Improve",
     links: [
       { name: "WPM Guide", href: "/blogs/good-wpm-typing-speed-guide" },
-      { name: "Typing Tips", href: "/tips" },
+      { name: "Typing Tips", href: "/blogs/typing-tips-improve-speed-accuracy" },
       { name: "Blog", href: "/blogs" },
-      { name: "FAQs", href: "/faqs" },
-      { name: "Dashboard", href: "/dashboard" },
+      { name: "About Us", href: "/about" },
     ],
   },
   {
