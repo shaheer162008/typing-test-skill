@@ -2,7 +2,7 @@ export const navLinks = [
   { name: "Typing Test", href: "/typing-test" },
   { name: "Typing Practice", href: "/typing-practice" },
   { name: "Word Typing", href: "/word-typing" },
-  { name: "WPM Guide", href: "/wpm-guide" },
+  { name: "WPM Guide", href: "/blogs/good-wpm-typing-speed-guide" },
   { name: "Typing Tips", href: "/tips" },
   { name: "Blog", href: "/blogs" },
 ];
@@ -21,7 +21,7 @@ export const footerLinks = [
   {
     title: "Learn & Improve",
     links: [
-      { name: "WPM Guide", href: "/wpm-guide" },
+      { name: "WPM Guide", href: "/blogs/good-wpm-typing-speed-guide" },
       { name: "Typing Tips", href: "/tips" },
       { name: "Blog", href: "/blogs" },
       { name: "FAQs", href: "/faqs" },

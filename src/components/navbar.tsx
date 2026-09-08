@@ -3,7 +3,8 @@
 import { useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Keyboard, Menu, UserRound, X } from "lucide-react";
+import Image from "next/image";
+import { Menu, UserRound, X } from "lucide-react";
 import { navLinks } from "@/lib/constants";
 
 export default function Navbar() {
@@ -24,9 +25,7 @@ export default function Navbar() {
       <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3" aria-label="Typing Test Skill Home">
-          <span className="flex h-8 w-8 items-center justify-center text-primary">
-            <Keyboard className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-          </span>
+          <Image src="/keyboard.svg" alt="" width={48} height={48} className="h-12 w-12" aria-hidden="true" />
           <span className="text-xl font-bold tracking-tight text-primary">Typing Test Skill</span>
         </Link>
 

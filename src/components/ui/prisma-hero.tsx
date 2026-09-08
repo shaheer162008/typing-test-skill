@@ -124,7 +124,7 @@ export const PrismaHero = () => {
           <div className="grid grid-cols-12 items-end gap-4">
             <div className="col-span-12 lg:col-span-8">
               <h1 id="typing-test-hero-title" className="text-[17vw] font-medium leading-[0.88] tracking-[-0.07em] text-primary sm:text-[15vw] md:text-[13vw] lg:text-[11vw] xl:text-[10vw] 2xl:text-[11vw]">
-                <WordsPullUp text="Typing Test"  />
+                <WordsPullUp text="Typing Test" />
               </h1>
             </div>
 
