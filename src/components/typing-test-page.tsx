@@ -34,7 +34,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
-  const [lesson, setLesson] = useState("lesson-1");
+  const savedResultRef = useRef(false);
   const targetText = useMemo(() => {
     if (mode === "words" && wordCount) return passage.split(" ").slice(0, wordCount).join(" ");
     const targetLength = Math.max(passage.length, (durationMinutes ?? 1) * 300);
@@ -78,10 +78,11 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Backspace" && typed.length <= lockBoundary) event.preventDefault();
+    if (event.key === " " && typed.endsWith(" ")) event.preventDefault();
   };
 
   const handleChange = (value: string) => {
-    if (completed || value.length < lockBoundary || value.length > targetText.length) return;
+    if (completed || value.length < lockBoundary || value.length > targetText.length || value.includes("  ")) return;
     if (!startedAt && value.length > 0) setStartedAt(Date.now());
     setTyped(value);
     if (value.endsWith(" ") && value.length > lockBoundary) setLockBoundary(value.length);
@@ -92,6 +93,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
     setLockBoundary(0);
     setStartedAt(null);
     setElapsedMs(0);
+    savedResultRef.current = false;
     lastLineOffset.current = 0;
     if (scrollBoxRef.current) scrollBoxRef.current.scrollTop = 0;
     inputRef.current?.focus();
@@ -108,63 +110,171 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
     { label: timeLimitMs ? "Left" : "Time", value: `${displayedTime}s` },
     { label: "Mistakes", value: mistakes },
   ];
-  const title = mode === "words" ? `${wordCount} word typing test` : `${durationMinutes}-minute ${mode === "practice" ? "typing practice" : "typing test"}`;
+
+  useEffect(() => {
+    if (!completed || !typed.length || savedResultRef.current) return;
+    savedResultRef.current = true;
+    const results = JSON.parse(window.localStorage.getItem("typing-test-results") ?? "[]") as Array<Record<string, unknown>>;
+    const qualifies = wpm >= 40 && accuracy >= 95;
+    results.unshift({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      mode,
+      durationMinutes,
+      wordCount,
+      wpm,
+      accuracy,
+      mistakes,
+      completedAt: new Date().toISOString(),
+      certificateId: qualifies ? `TTS-${Date.now().toString(36).toUpperCase()}` : null,
+      name: "Typing Test Skill learner",
+    });
+    window.localStorage.setItem("typing-test-results", JSON.stringify(results.slice(0, 20)));
+    window.dispatchEvent(new Event("typing-test-result"));
+  }, [accuracy, completed, durationMinutes, mode, mistakes, typed.length, wordCount, wpm]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-primary">
-      <Navbar />
-      <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        <header className="mb-6 flex flex-col gap-4 border-b border-primary/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-primary/45">{mode === "words" ? "Word mode" : mode === "practice" ? "Practice mode" : "Timed test"}</p>
-            <h1 className="text-2xl font-medium tracking-tight sm:text-4xl">{title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary/50">Stay relaxed, follow the highlighted character, and let accuracy lead your speed.</p>
-          </div>
-          <label className="flex w-full items-center justify-between gap-3 rounded-xl border border-primary/15 bg-white/[0.03] px-3 py-2 text-xs text-primary/55 sm:w-auto">
-            <span className="uppercase tracking-[0.14em]">Lesson</span>
-            <select value={lesson} onChange={(event) => setLesson(event.target.value)} className="bg-transparent text-right text-primary outline-none">
-              <option value="lesson-1" className="bg-[#111]">Lesson 01 · Home row</option>
-              <option value="lesson-2" className="bg-[#111]">Lesson 02 · Common words</option>
-              <option value="lesson-3" className="bg-[#111]">Lesson 03 · Mixed rhythm</option>
-            </select>
-          </label>
-        </header>
+    // Whole page is locked to the viewport height — no page-level scroll at any breakpoint.
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#080808] text-primary">
+      <div className="shrink-0">
+        <Navbar />
+      </div>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
-          <section className="min-w-0">
-            <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-primary/40"><span>{completed ? "Session complete" : startedAt ? "In progress" : "Ready when you are"}</span><span>{typed.length}/{targetText.length} chars</span></div>
-            <div className="rounded-2xl border border-primary/15 bg-white/[0.025] p-4 shadow-[0_20px_80px_rgba(0,0,0,0.2)] sm:p-7">
-              <div className="relative cursor-text rounded-xl border border-primary/10 bg-black/30 px-4 py-5 transition-colors focus-within:border-primary/35 sm:px-6 sm:py-7" onClick={() => inputRef.current?.focus()}>
-                <div ref={scrollBoxRef} className="h-[270px] overflow-hidden text-lg leading-9 text-primary/35 sm:h-[330px] sm:text-xl sm:leading-10">
+      <main className="mx-auto flex w-full max-w-[1360px] min-h-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 lg:px-9 lg:py-5">
+        <p className="mb-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-primary/45">Typing test</p>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
+          {/* Left column: stats box on top, keyboard pinned to the bottom — same height as the passage box */}
+          <aside className="flex min-h-0 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 sm:p-5">
+            <div className="mb-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-primary/45">Live stats</div>
+            <div className="grid shrink-0 grid-cols-2 gap-2.5">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-lg bg-black/55 px-2 py-4 text-center">
+                  <div className="mt-2 font-variant-numeric tabular-nums text-xl font-medium">{stat.value}</div>
+                  <div className="text-[9px] uppercase tracking-[0.14em] text-primary/40">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Spacer pushes the keyboard down to the bottom of the card, filling remaining height */}
+            <div className="min-h-0 flex-1" />
+
+            <div className="shrink-0 border-t border-primary/10 pt-4">
+              <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-primary/45">Keyboard</div>
+              <div className="flex flex-col gap-1.5">
+                {keyboardRows.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex gap-1">
+                    {row.map((key) => (
+                      <div
+                        key={key}
+                        style={{ flexGrow: keyWidth[key] ?? 1, flexBasis: 0 }}
+                        className={`flex h-8 items-center justify-center rounded-md border text-[9px] font-medium transition-colors ${
+                          pressedKey === key ? "border-primary bg-primary text-black" : "border-primary/15 bg-black text-primary/70"
+                        }`}
+                      >
+                        {key}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* Right column: passage box fills all remaining height, no internal scrollbar visible */}
+          <section className="flex min-h-0 flex-col">
+            <div className="mb-3 flex shrink-0 items-center justify-between text-[10px] uppercase tracking-[0.16em] text-primary/40">
+              <span>{completed ? "Session complete" : startedAt ? "In progress" : "Ready when you are"}</span>
+              <span>{typed.length}/{targetText.length} chars</span>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 shadow-[0_20px_80px_rgba(0,0,0,0.2)] sm:p-6">
+              <div
+                className="relative flex min-h-0 flex-1 cursor-text flex-col rounded-xl border border-primary/10 bg-black/25 px-5 py-5 transition-colors focus-within:border-primary/35 sm:px-6 sm:py-6"
+                onClick={() => inputRef.current?.focus()}
+              >
+                <div
+                  ref={scrollBoxRef}
+                  className="min-h-0 flex-1 overflow-hidden text-[18px] font-medium leading-[34px] text-primary/50 sm:text-[19px] sm:leading-[34px]"
+                >
                   {targetText.split("").map((char, index) => {
                     const typedChar = typed[index];
                     const isCurrent = index === typed.length && !completed;
                     const isLocked = index < lockBoundary;
                     const isCorrect = typedChar !== undefined && typedChar === char;
                     const isWrong = typedChar !== undefined && typedChar !== char;
-                    let className = "rounded-sm";
-                    if (isCurrent) className += " border-b-2 border-primary text-primary";
-                    else if (isWrong) className += isLocked ? " bg-red-500/25 text-red-300" : " bg-red-500/15 text-red-300";
-                    else if (isCorrect) className += " text-primary";
-                    return <span key={index} ref={isCurrent ? currentCharRef : null} className={className}>{char}</span>;
+
+                    // Untyped text stays clearly legible (no more low-opacity haze), correct
+                    // text turns solid white, and mistakes get both a red fill AND an
+                    // underline so the error is obvious even for colour-blind readers.
+                    let className = "relative rounded-sm";
+                    if (isWrong) {
+                      className += isLocked
+                        ? " bg-red-500/30 text-red-300 underline decoration-red-400 decoration-2 underline-offset-[3px]"
+                        : " bg-red-500/20 text-red-300 underline decoration-red-400/70 decoration-2 underline-offset-[3px]";
+                    } else if (isCorrect) {
+                      className += " text-white";
+                    } else {
+                      className += " text-primary/50";
+                    }
+
+                    return (
+                      <span key={index} ref={isCurrent ? currentCharRef : null} className={className}>
+                        {isCurrent && (
+                          <span
+                            aria-hidden
+                            className="absolute -left-[1px] top-[1px] bottom-[1px] w-[2px] rounded-full bg-primary animate-[caret-blink_1s_steps(2,jump-none)_infinite]"
+                          />
+                        )}
+                        {char}
+                      </span>
+                    );
                   })}
                 </div>
-                {typed.length === 0 && <p className="pointer-events-none mt-5 text-xs text-primary/35">Click the passage, then start typing</p>}
-                <textarea ref={inputRef} value={typed} onChange={(event) => handleChange(event.target.value)} onKeyDown={handleKeyDown} aria-label="Typing input" disabled={completed} className="absolute inset-0 h-full w-full resize-none border-0 bg-transparent p-0 text-transparent caret-transparent outline-none" />
+                <style jsx global>{`
+                  @keyframes caret-blink {
+                    0%,
+                    49% {
+                      opacity: 1;
+                    }
+                    50%,
+                    100% {
+                      opacity: 0;
+                    }
+                  }
+                `}</style>
+                {typed.length === 0 && <p className="pointer-events-none mt-5 shrink-0 text-xs text-primary/35">Click the passage, then start typing</p>}
+                <textarea
+                  ref={inputRef}
+                  value={typed}
+                  onChange={(event) => handleChange(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  aria-label="Typing input"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  disabled={completed}
+                  className="absolute inset-0 h-full w-full resize-none border-0 bg-transparent p-0 text-transparent caret-transparent outline-none"
+                />
               </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-primary/40"><span>Strict mode · completed words stay locked</span><button type="button" onClick={resetTest} className="rounded-lg border border-primary/20 px-3 py-1.5 text-primary transition hover:bg-primary/10">Reset session</button></div>
+
+              <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 text-xs text-primary/40">
+                <span>Strict mode · completed words stay locked</span>
+                <button type="button" onClick={resetTest} className="rounded-lg border border-primary/20 px-3 py-1.5 text-primary transition hover:bg-primary/10">
+                  Reset session
+                </button>
+              </div>
             </div>
-            {completed && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary/[0.06] px-4 py-3 text-sm"><span>Finished at {wpm} WPM with {accuracy}% accuracy.</span><button type="button" onClick={resetTest} className="font-medium text-primary underline decoration-primary/30 underline-offset-4">Try again</button></div>}
+
+            {completed && (
+              <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary/[0.06] px-4 py-3 text-sm">
+                <span>Finished at {wpm} WPM with {accuracy}% accuracy.</span>
+                <button type="button" onClick={resetTest} className="font-medium text-primary underline decoration-primary/30 underline-offset-4">
+                  Try again
+                </button>
+              </div>
+            )}
           </section>
-
-          <aside className="rounded-2xl border border-primary/15 bg-white/[0.02] p-4 sm:p-5">
-            <div className="mb-4 text-[10px] uppercase tracking-[0.18em] text-primary/45">Live performance</div>
-            <div className="grid grid-cols-2 gap-2.5">{stats.map((stat) => <div key={stat.label} className="rounded-xl bg-black/45 px-2 py-4 text-center"><div className="text-[9px] uppercase tracking-[0.14em] text-primary/40">{stat.label}</div><div className="mt-2 text-xl font-medium">{stat.value}</div></div>)}</div>
-            <div className="mt-8 border-t border-primary/10 pt-5"><div className="mb-3 flex items-center justify-between"><span className="text-[10px] uppercase tracking-[0.18em] text-primary/45">Keyboard</span><span className="text-[10px] text-primary/35">Live keys</span></div><div className="flex flex-col gap-1.5">{keyboardRows.map((row, rowIndex) => <div key={rowIndex} className="flex gap-1">{row.map((key) => <div key={key} style={{ flexGrow: keyWidth[key] ?? 1, flexBasis: 0 }} className={`flex h-8 items-center justify-center rounded-md border text-[9px] font-medium transition-colors ${pressedKey === key ? "border-primary bg-primary text-black" : "border-primary/15 bg-black text-primary/70"}`}>{key}</div>)}</div>)}</div></div>
-          </aside>
         </div>
-
-        <section className="mt-12 max-w-3xl border-t border-primary/10 pt-8"><p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">About this session</p><h2 className="mt-3 text-xl font-medium">A calmer way to improve your typing.</h2><p className="mt-3 text-sm leading-7 text-primary/50">This {mode === "words" ? `${wordCount}-word` : `${durationMinutes}-minute`} {mode === "practice" ? "practice session" : "typing test"} tracks your speed, accuracy, and mistakes as you type. Use the lesson selector for a fresh training focus, then repeat the same format until accurate movement feels natural.</p></section>
       </main>
     </div>
   );

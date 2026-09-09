@@ -3,6 +3,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 import ModeHero from "@/components/mode-hero";
 import ModeFaq from "@/components/mode-faq";
+import DurationLessonPicker from "@/components/duration-lesson-picker";
 import { getDurationHref, type TypingMode } from "@/lib/typing-modes";
 import type { DurationContent } from "@/lib/typing-page-content";
 
@@ -23,6 +24,7 @@ export default function DurationLandingPage({ mode, duration, content }: Duratio
         description={content.description}
         primaryHref={runHref}
         primaryLabel={isPractice ? "Start practice" : "Start test"}
+        sessionPanel={<DurationLessonPicker mode={mode} duration={duration} />}
       />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <section className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
