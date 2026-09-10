@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Clock3, Target } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { durations, getDurationHref, getWordHref, wordCounts } from "@/lib/typing-modes";
+import { useFirestoreCategories } from "@/lib/firestore-categories";
 
 type ModeSessionPanelProps = { mode: "practice" | "words" };
 
@@ -14,7 +15,9 @@ function getNote(mode: ModeSessionPanelProps["mode"], value: number) {
 
 export default function ModeSessionPanel({ mode }: ModeSessionPanelProps) {
   const isWords = mode === "words";
-  const options = isWords ? wordCounts : durations;
+  const firestoreCategories = useFirestoreCategories(isWords ? "word-test" : "practice");
+  const options = (isWords ? firestoreCategories.map((category) => category.wordCount).filter((value): value is number => Boolean(value)) : firestoreCategories.map((category) => category.durationMinutes).filter((value): value is number => Boolean(value))).sort((first, second) => first - second);
+  const availableOptions = options.length ? options : (isWords ? [...wordCounts] : [...durations]);
   const [selected, setSelected] = useState(isWords ? 50 : 5);
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -49,7 +52,7 @@ export default function ModeSessionPanel({ mode }: ModeSessionPanelProps) {
                 <ChevronDown className={`h-5 w-5 text-black/60 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
               {isOpen ? <div id={`${mode}-hero-options`} className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 border border-black/20 bg-[#f7f5ec] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.2)]" role="listbox" aria-label={isWords ? "Choose word count" : "Choose practice duration"}>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">{options.map((value) => <button key={value} type="button" role="option" aria-selected={value === selected} onClick={() => { setSelected(value); setIsOpen(false); }} className={`flex min-h-16 flex-col items-start justify-center border px-3 text-left transition ${value === selected ? "border-black bg-black text-primary" : "border-black/10 text-black hover:border-black/45 hover:bg-black/5"}`}><span className="text-base font-semibold">{isWords ? `${value} words` : `${value} min`}</span><span className={`text-[10px] ${value === selected ? "text-primary/60" : "text-black/45"}`}>{getNote(mode, value)}</span></button>)}</div>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">{availableOptions.map((value) => <button key={value} type="button" role="option" aria-selected={value === selected} onClick={() => { setSelected(value); setIsOpen(false); }} className={`flex min-h-16 flex-col items-start justify-center border px-3 text-left transition ${value === selected ? "border-black bg-black text-primary" : "border-black/10 text-black hover:border-black/45 hover:bg-black/5"}`}><span className="text-base font-semibold">{isWords ? `${value} words` : `${value} min`}</span><span className={`text-[10px] ${value === selected ? "text-primary/60" : "text-black/45"}`}>{getNote(mode, value)}</span></button>)}</div>
               </div> : null}
             </div>
           </div>

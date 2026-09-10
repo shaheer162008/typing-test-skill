@@ -4,8 +4,28 @@ import { useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Menu, UserRound, X } from "lucide-react";
+import { LogOut, Menu, UserRound, X } from "lucide-react";
 import { navLinks } from "@/lib/constants";
+import { useAuth } from "@/components/auth-provider";
+
+function ProfileControl() {
+  const { user, loading, logout } = useAuth();
+  const profileHref = user ? "/dashboard" : "/login";
+  const label = user?.displayName ?? user?.email ?? "Sign in";
+
+  return (
+    <div className="group relative">
+      <Link href={profileHref} className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-primary/15 text-primary/70 transition hover:border-primary/45 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={user ? "Open dashboard" : "Sign in"}>
+        {user?.photoURL ? <Image src={user.photoURL} alt="" width={40} height={40} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
+      </Link>
+      {!loading && <div className="pointer-events-none absolute right-0 top-[calc(100%+0.75rem)] z-50 w-64 translate-y-1 border border-primary/15 bg-[#111] p-4 opacity-0 shadow-2xl transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
+        <p className="truncate text-sm font-medium">{label}</p>
+        <p className="mt-1 truncate text-xs text-primary/45">{user ? "Typing Test Skill account" : "Save tests and certificates"}</p>
+        {user ? <button type="button" onClick={() => void logout()} className="mt-4 flex items-center gap-2 text-xs text-primary/60 hover:text-primary"><LogOut className="h-3.5 w-3.5" /> Sign out</button> : <Link href="/signup" className="mt-4 inline-flex text-xs text-primary underline decoration-primary/25 underline-offset-4">Create account</Link>}
+      </div>}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,24 +69,12 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center lg:flex">
-          <button
-            type="button"
-            className="rounded-full p-2 text-primary/70 transition-colors hover:bg-white/10 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Profile"
-          >
-            <UserRound className="h-5 w-5" />
-          </button>
+          <ProfileControl />
         </div>
 
         {/* Mobile Menu Toggle */}
         <div className="flex items-center gap-2 lg:hidden">
-          <button
-            type="button"
-            className="rounded-full p-2 text-primary/70 transition-colors hover:bg-white/10 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label="Profile"
-          >
-            <UserRound className="h-5 w-5" />
-          </button>
+          <ProfileControl />
           <button
             onClick={toggleMenu}
             onKeyDown={handleKeyDown}

@@ -1,0 +1,22 @@
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+
+export const runtime = "nodejs";
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ uid: string }> }) {
+  try {
+    const authorization = request.headers.get("authorization");
+    if (!authorization?.startsWith("Bearer ")) return Response.json({ error: "Authentication required." }, { status: 401 });
+    const actor = await getAdminAuth().verifyIdToken(authorization.slice(7));
+    if (actor.admin !== true) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const { uid } = await params;
+    const body = await request.json() as { role?: string };
+    if (body.role !== "admin" && body.role !== "user") return Response.json({ error: "Role must be admin or user." }, { status: 400 });
+    const target = await getAdminAuth().getUser(uid);
+    await getAdminAuth().setCustomUserClaims(uid, { ...target.customClaims, admin: body.role === "admin", role: body.role });
+    await getAdminDb().collection("users").doc(uid).set({ role: body.role, updatedAt: Date.now() }, { merge: true });
+    return Response.json({ ok: true, uid, role: body.role });
+  } catch (error) {
+    console.error("admin role update failed", error);
+    return Response.json({ error: "Could not update user role." }, { status: 500 });
+  }
+}

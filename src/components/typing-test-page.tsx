@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/navbar";
+import { ArrowRight, Award, BarChart3, BookOpen, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import type { TypingMode } from "@/lib/typing-modes";
-
-const passage =
-  "Practice makes progress. Focus on rhythm, accuracy, and calm keystrokes. The best typists do not rush. They stay relaxed, keep their eyes on the text, and let the fingers follow the pattern naturally with confidence. Great typing is not about speed alone. It is about timing, control, and consistency. When you keep your posture balanced and your hands light, the words begin to flow without tension. Every careful session builds a stronger habit. Consistency over long stretches matters more than any single fast burst, because the fingers only get faster once the pattern stops requiring conscious thought.";
+import { getTargetText } from "@/lib/typing-passage";
+import { useAuth } from "@/components/auth-provider";
+import { useFirestoreLessons } from "@/lib/firestore-lessons";
 
 const keyboardRows = [
   ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],
@@ -17,14 +19,14 @@ const keyboardRows = [
 
 const keyWidth: Record<string, number> = { Space: 6 };
 
-type TypingTestPageProps = { mode: TypingMode; durationMinutes?: number; wordCount?: number };
+type TypingTestPageProps = { mode: TypingMode; durationMinutes?: number; wordCount?: number; lessonId?: string };
 
 function getWpm(correctChars: number, elapsedMs: number) {
   if (elapsedMs <= 0) return 0;
   return Math.max(0, Math.round(correctChars / 5 / (elapsedMs / 60000) || 0));
 }
 
-export default function TypingTestPage({ mode, durationMinutes, wordCount }: TypingTestPageProps) {
+export default function TypingTestPage({ mode, durationMinutes, wordCount, lessonId }: TypingTestPageProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const currentCharRef = useRef<HTMLSpanElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
@@ -35,16 +37,39 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
   const savedResultRef = useRef(false);
+  const submittedResultRef = useRef(false);
+  const sessionRef = useRef<{ sessionId: string; nonce: string } | null>(null);
+  const telemetryRef = useRef<Array<{ key: string; at: number }>>([]);
+  const { user } = useAuth();
+  const categoryId = mode === "words" ? `words-${wordCount}` : `${mode === "practice" ? "practice" : "timed"}-${durationMinutes}-minute`;
+  const { lessons: firestoreLessons } = useFirestoreLessons(categoryId);
+  const selectedLesson = firestoreLessons.find((lesson) => lesson.id === lessonId);
   const targetText = useMemo(() => {
-    if (mode === "words" && wordCount) return passage.split(" ").slice(0, wordCount).join(" ");
-    const targetLength = Math.max(passage.length, (durationMinutes ?? 1) * 300);
-    return passage.repeat(Math.ceil(targetLength / passage.length)).slice(0, targetLength);
-  }, [durationMinutes, mode, wordCount]);
+    return selectedLesson?.text ?? getTargetText(mode, durationMinutes, wordCount);
+  }, [durationMinutes, mode, selectedLesson?.text, wordCount]);
   const timeLimitMs = durationMinutes ? durationMinutes * 60000 : null;
   const finishedByTime = Boolean(timeLimitMs && elapsedMs >= timeLimitMs);
   const completed = mode === "words" ? typed.length >= targetText.length : finishedByTime || typed.length >= targetText.length;
 
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    sessionRef.current = null;
+    telemetryRef.current = [];
+    submittedResultRef.current = false;
+    if (!user) return;
+    let cancelled = false;
+    void user.getIdToken().then((token) => fetch("/api/tests/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ mode, durationMinutes, wordCount, lessonId }),
+    })).then(async (response) => {
+      if (!response.ok || cancelled) return;
+      const session = await response.json() as { sessionId: string; nonce: string };
+      sessionRef.current = session;
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [durationMinutes, lessonId, mode, user, wordCount]);
 
   useEffect(() => {
     if (!startedAt || completed) return;
@@ -77,8 +102,12 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
   }, [typed]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Backspace" && typed.length <= lockBoundary) event.preventDefault();
-    if (event.key === " " && typed.endsWith(" ")) event.preventDefault();
+    const blocked = (event.key === "Backspace" && typed.length <= lockBoundary) || (event.key === " " && typed.endsWith(" "));
+    if (blocked) {
+      event.preventDefault();
+      return;
+    }
+    if (event.key.length === 1 || event.key === "Backspace") telemetryRef.current.push({ key: event.key, at: Date.now() });
   };
 
   const handleChange = (value: string) => {
@@ -94,6 +123,9 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
     setStartedAt(null);
     setElapsedMs(0);
     savedResultRef.current = false;
+    submittedResultRef.current = false;
+    sessionRef.current = null;
+    telemetryRef.current = [];
     lastLineOffset.current = 0;
     if (scrollBoxRef.current) scrollBoxRef.current.scrollTop = 0;
     inputRef.current?.focus();
@@ -112,10 +144,19 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
   ];
 
   useEffect(() => {
+    if (!completed || !user || !sessionRef.current || submittedResultRef.current || telemetryRef.current.length < 2) return;
+    submittedResultRef.current = true;
+    void user.getIdToken().then((token) => fetch("/api/tests/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...sessionRef.current, events: telemetryRef.current }),
+    })).catch(() => { submittedResultRef.current = false; });
+  }, [completed, user]);
+
+  useEffect(() => {
     if (!completed || !typed.length || savedResultRef.current) return;
     savedResultRef.current = true;
     const results = JSON.parse(window.localStorage.getItem("typing-test-results") ?? "[]") as Array<Record<string, unknown>>;
-    const qualifies = wpm >= 40 && accuracy >= 95;
     results.unshift({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       mode,
@@ -125,12 +166,32 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
       accuracy,
       mistakes,
       completedAt: new Date().toISOString(),
-      certificateId: qualifies ? `TTS-${Date.now().toString(36).toUpperCase()}` : null,
+      certificateId: null,
       name: "Typing Test Skill learner",
     });
     window.localStorage.setItem("typing-test-results", JSON.stringify(results.slice(0, 20)));
     window.dispatchEvent(new Event("typing-test-result"));
   }, [accuracy, completed, durationMinutes, mode, mistakes, typed.length, wordCount, wpm]);
+
+  if (completed) {
+    const sessionTitle = mode === "words" ? `${wordCount}-word test` : `${durationMinutes}-minute ${mode === "practice" ? "practice" : "typing test"}`;
+    const completionTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date());
+    return (
+      <div className="min-h-screen bg-[#080808] text-primary">
+        <Navbar />
+        <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
+          <div className="border-b border-primary/10 pb-7"><p className="text-[10px] uppercase tracking-[0.2em] text-primary/45">Session complete</p><h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] sm:text-6xl">A clear result to build on.</h1><p className="mt-4 text-sm text-primary/50">{sessionTitle} · Completed {completionTime}</p></div>
+          <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Test result summary">
+            {[["WPM", wpm], ["Accuracy", `${accuracy}%`], [timeLimitMs ? "Time used" : "Completion time", timeLimitMs ? `${Math.round(elapsedMs / 1000)}s` : `${Math.round(elapsedMs / 1000)}s`], ["Mistakes", mistakes]].map(([label, value]) => <article key={String(label)} className="border border-primary/15 bg-white/[0.025] p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-primary/40">{label}</p><p className="mt-3 text-3xl font-medium">{value}</p></article>)}
+          </section>
+          <section className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="border border-primary/15 bg-white/[0.02] p-6 sm:p-8"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-primary/60" /><h2 className="text-2xl font-medium">What to do next</h2></div><p className="mt-4 max-w-xl text-sm leading-7 text-primary/55">Your result is saved as a session preview. Keep accuracy above 95%, then repeat a longer test to make your speed more consistent.</p><div className="mt-7 grid gap-3 sm:grid-cols-3"><Link href="/dashboard" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><BarChart3 className="h-4 w-4" /><span className="mt-5 block">Open dashboard</span></Link><Link href="/typing-practice" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><BookOpen className="h-4 w-4" /><span className="mt-5 block">Practice weak spots</span></Link><Link href="/certificates" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><Award className="h-4 w-4" /><span className="mt-5 block">See certificates</span></Link></div></div>
+            <div className="border border-primary/15 bg-primary/[0.06] p-6 sm:p-8"><p className="text-[10px] uppercase tracking-[0.18em] text-primary/45">Ready for another round?</p><h2 className="mt-3 text-2xl font-medium">Turn this score into a habit.</h2><div className="mt-7 grid gap-3"><button type="button" onClick={resetTest} className="flex items-center justify-between bg-primary px-4 py-3 text-sm font-semibold text-black">Try again <RotateCcw className="h-4 w-4" /></button><Link href="/typing-test" className="flex items-center justify-between border border-primary/20 px-4 py-3 text-sm">Choose another duration <ArrowRight className="h-4 w-4" /></Link></div></div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     // Whole page is locked to the viewport height — no page-level scroll at any breakpoint.
@@ -144,7 +205,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
           {/* Left column: stats box on top, keyboard pinned to the bottom — same height as the passage box */}
-          <aside className="flex min-h-0 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 sm:p-5">
+          <aside className="hidden min-h-0 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 sm:p-5 lg:flex">
             <div className="mb-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-primary/45">Live stats</div>
             <div className="grid shrink-0 grid-cols-2 gap-2.5">
               {stats.map((stat) => (
@@ -248,6 +309,8 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
                   value={typed}
                   onChange={(event) => handleChange(event.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={(event) => event.preventDefault()}
+                  onDrop={(event) => event.preventDefault()}
                   aria-label="Typing input"
                   spellCheck={false}
                   autoCorrect="off"
@@ -265,14 +328,6 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount }: Typ
               </div>
             </div>
 
-            {completed && (
-              <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary/[0.06] px-4 py-3 text-sm">
-                <span>Finished at {wpm} WPM with {accuracy}% accuracy.</span>
-                <button type="button" onClick={resetTest} className="font-medium text-primary underline decoration-primary/30 underline-offset-4">
-                  Try again
-                </button>
-              </div>
-            )}
           </section>
         </div>
       </main>

@@ -8,6 +8,7 @@ import Navbar from "@/components/navbar";
 import ModeBenefits from "@/components/mode-benefits";
 import ModeFaq from "@/components/mode-faq";
 import { durations, getDurationHref } from "@/lib/typing-modes";
+import { useFirestoreCategories } from "@/lib/firestore-categories";
 
 const benefits = [
   "No account required",
@@ -31,6 +32,9 @@ function getDurationNote(value: number) {
 export default function TypingTestHub() {
   const [duration, setDuration] = useState(1);
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
+  const firestoreCategories = useFirestoreCategories("timed-test");
+  const availableDurations = firestoreCategories.map((category) => category.durationMinutes).filter((value): value is number => Boolean(value)).sort((first, second) => first - second);
+  const durationOptions = availableDurations.length ? availableDurations : [...durations];
   const durationPickerRef = useRef<HTMLDivElement>(null);
   const selectedHref = getDurationHref("test", duration);
 
@@ -56,14 +60,14 @@ export default function TypingTestHub() {
   const handleDurationKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
-      const currentIndex = durations.indexOf(duration as (typeof durations)[number]);
-      setDuration(durations[Math.min(currentIndex + 1, durations.length - 1)]);
+      const currentIndex = durationOptions.indexOf(duration);
+      setDuration(durationOptions[Math.min(currentIndex + 1, durationOptions.length - 1)]);
       setIsDurationMenuOpen(true);
     }
     if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
       event.preventDefault();
-      const currentIndex = durations.indexOf(duration as (typeof durations)[number]);
-      setDuration(durations[Math.max(currentIndex - 1, 0)]);
+      const currentIndex = durationOptions.indexOf(duration);
+      setDuration(durationOptions[Math.max(currentIndex - 1, 0)]);
       setIsDurationMenuOpen(true);
     }
     if (event.key === "Enter" || event.key === " ") {
@@ -142,7 +146,7 @@ export default function TypingTestHub() {
                       {isDurationMenuOpen ? (
                         <div id="duration-options" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 border border-black/20 bg-[#f7f5ec] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.2)]" role="listbox" aria-label="Choose test duration">
                           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                            {durations.map((value) => {
+                            {durationOptions.map((value) => {
                               const isSelected = value === duration;
                               return (
                                 <button
