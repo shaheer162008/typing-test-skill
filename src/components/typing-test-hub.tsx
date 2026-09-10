@@ -7,7 +7,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 import ModeBenefits from "@/components/mode-benefits";
 import ModeFaq from "@/components/mode-faq";
-import { durations, getDurationHref } from "@/lib/typing-modes";
+import { difficultyLevels, getDifficultyHint, getDifficultyLabel, getDurationHref, normalizeDifficulty, type DifficultyLevel, durations } from "@/lib/typing-modes";
 import { useFirestoreCategories } from "@/lib/firestore-categories";
 
 const benefits = [
@@ -31,12 +31,13 @@ function getDurationNote(value: number) {
 
 export default function TypingTestHub() {
   const [duration, setDuration] = useState(1);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
   const [isDurationMenuOpen, setIsDurationMenuOpen] = useState(false);
   const firestoreCategories = useFirestoreCategories("timed-test");
   const availableDurations = firestoreCategories.map((category) => category.durationMinutes).filter((value): value is number => Boolean(value)).sort((first, second) => first - second);
   const durationOptions = availableDurations.length ? availableDurations : [...durations];
   const durationPickerRef = useRef<HTMLDivElement>(null);
-  const selectedHref = getDurationHref("test", duration);
+  const selectedHref = getDurationHref("test", duration, difficulty);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -122,52 +123,71 @@ export default function TypingTestHub() {
                     </div>
                   </div>
 
-                  <div className="mt-9" ref={durationPickerRef}>
-                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">
-                      Test duration
-                    </span>
-                    <div className="relative mt-3">
-                      <button
-                        type="button"
-                        aria-expanded={isDurationMenuOpen}
-                        aria-haspopup="listbox"
-                        aria-controls="duration-options"
-                        onClick={() => setIsDurationMenuOpen((isOpen) => !isOpen)}
-                        onKeyDown={handleDurationKeyDown}
-                        className="flex w-full items-center justify-between border border-black/25 bg-[#f7f5ec] px-4 py-3.5 text-left text-black outline-none transition hover:border-black/60 focus:border-black focus:ring-2 focus:ring-black/20"
-                      >
-                        <span>
-                          <span className="block text-lg font-semibold tracking-[-0.03em]">{duration} minute{duration === 1 ? "" : "s"}</span>
-                          <span className="mt-0.5 block text-xs text-black/50">{getDurationNote(duration)}</span>
-                        </span>
-                        <ChevronDown className={`h-5 w-5 text-black/60 transition-transform ${isDurationMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-                      </button>
+                  <div className="mt-9 space-y-4" ref={durationPickerRef}>
+                    <div>
+                      <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">
+                        Test duration
+                      </span>
+                      <div className="relative mt-3">
+                        <button
+                          type="button"
+                          aria-expanded={isDurationMenuOpen}
+                          aria-haspopup="listbox"
+                          aria-controls="duration-options"
+                          onClick={() => setIsDurationMenuOpen((isOpen) => !isOpen)}
+                          onKeyDown={handleDurationKeyDown}
+                          className="flex w-full items-center justify-between border border-black/25 bg-[#f7f5ec] px-4 py-3.5 text-left text-black outline-none transition hover:border-black/60 focus:border-black focus:ring-2 focus:ring-black/20"
+                        >
+                          <span>
+                            <span className="block text-lg font-semibold tracking-[-0.03em]">{duration} minute{duration === 1 ? "" : "s"}</span>
+                            <span className="mt-0.5 block text-xs text-black/50">{getDurationNote(duration)}</span>
+                          </span>
+                          <ChevronDown className={`h-5 w-5 text-black/60 transition-transform ${isDurationMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+                        </button>
 
-                      {isDurationMenuOpen ? (
-                        <div id="duration-options" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 border border-black/20 bg-[#f7f5ec] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.2)]" role="listbox" aria-label="Choose test duration">
-                          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                            {durationOptions.map((value) => {
-                              const isSelected = value === duration;
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  role="option"
-                                  aria-selected={isSelected}
-                                  onClick={() => {
-                                    setDuration(value);
-                                    setIsDurationMenuOpen(false);
-                                  }}
-                                  className={`flex min-h-16 flex-col items-start justify-center border px-3 text-left transition ${isSelected ? "border-black bg-black text-primary" : "border-black/10 text-black hover:border-black/45 hover:bg-black/5"}`}
-                                >
-                                  <span className="text-base font-semibold">{value} min</span>
-                                  <span className={`text-[10px] ${isSelected ? "text-primary/60" : "text-black/45"}`}>{getDurationNote(value)}</span>
-                                </button>
-                              );
-                            })}
+                        {isDurationMenuOpen ? (
+                          <div id="duration-options" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 border border-black/20 bg-[#f7f5ec] p-2 shadow-[0_18px_40px_rgba(0,0,0,0.2)]" role="listbox" aria-label="Choose test duration">
+                            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                              {durationOptions.map((value) => {
+                                const isSelected = value === duration;
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={isSelected}
+                                    onClick={() => {
+                                      setDuration(value);
+                                      setIsDurationMenuOpen(false);
+                                    }}
+                                    className={`flex min-h-16 flex-col items-start justify-center border px-3 text-left transition ${isSelected ? "border-black bg-black text-primary" : "border-black/10 text-black hover:border-black/45 hover:bg-black/5"}`}
+                                  >
+                                    <span className="text-base font-semibold">{value} min</span>
+                                    <span className={`text-[10px] ${isSelected ? "text-primary/60" : "text-black/45"}`}>{getDurationNote(value)}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ) : null}
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">Difficulty</span>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {difficultyLevels.map((level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => setDifficulty(level)}
+                            className={`border px-3 py-2 text-xs font-medium transition ${difficulty === level ? "border-black bg-black text-primary" : "border-black/15 bg-[#f7f5ec] text-black"}`}
+                          >
+                            {getDifficultyLabel(level)}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-black/50">{getDifficultyHint(difficulty)}</p>
                     </div>
                   </div>
 
@@ -175,7 +195,7 @@ export default function TypingTestHub() {
                     href={selectedHref}
                     className="group mt-4 flex items-center justify-between bg-black px-5 py-4 text-sm font-semibold text-primary transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
                   >
-                    Start the {duration}-minute test
+                    Start the {duration}-minute {normalizeDifficulty(difficulty)} test
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                   </Link>
 

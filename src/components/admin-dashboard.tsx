@@ -21,6 +21,7 @@ function dateLabel(value: ContactMessage["createdAt"]) {
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [categories, setCategories] = useState<Category[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -37,7 +38,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!user) return;
-    void user.getIdTokenResult(true).then((token) => setIsAdmin(token.claims.admin === true));
+    void user.getIdTokenResult(true).then((token) => {
+      const admin = token.claims.admin === true;
+      const superAdmin = token.claims.superAdmin === true || token.claims.role === "super_admin";
+      setIsAdmin(admin);
+      setIsSuperAdmin(superAdmin);
+    });
   }, [user]);
 
   useEffect(() => {
@@ -101,7 +107,10 @@ export default function AdminDashboard() {
   };
 
   const changeRole = async (record: UserRecord, role: string) => {
-    if (!user) return;
+    if (!user || !isSuperAdmin) {
+      setNotice("Only super admins can change roles.");
+      return;
+    }
     const token = await user.getIdToken();
     const response = await fetch(`/api/admin/users/${record.id}/role`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ role }) });
     setNotice(response.ok ? "Role updated. User should refresh their session." : "Role update failed.");
@@ -131,7 +140,7 @@ export default function AdminDashboard() {
 
       {activeTab === "inbox" && <section className="mt-8 space-y-3">{messages.length ? messages.map((message) => <article key={message.id} className={`border p-5 ${message.seen ? "border-primary/10" : "border-primary/40 bg-primary/[0.04]"}`}><div className="flex flex-col justify-between gap-3 sm:flex-row"><div><p className="text-sm font-medium">{message.subject}</p><p className="mt-1 text-xs text-primary/50">{message.name} · {message.email} · {dateLabel(message.createdAt)}</p></div>{message.seen ? <span className="text-xs text-primary/40">Seen</span> : <button type="button" onClick={() => void markSeen(message)} className="text-xs text-primary underline underline-offset-4">Mark seen</button>}</div><p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-primary/70">{message.message}</p></article>) : <p className="border border-dashed border-primary/15 p-8 text-sm text-primary/50">No contact messages yet.</p>}</section>}
 
-      {activeTab === "users" && <section className="mt-8 border border-primary/15"><div className="grid grid-cols-[1fr_1fr_120px] gap-4 border-b border-primary/10 p-4 text-xs uppercase tracking-[0.14em] text-primary/40"><span>Name</span><span>Email</span><span>Role</span></div>{users.map((record) => <div key={record.id} className="grid grid-cols-[1fr_1fr_120px] items-center gap-4 border-b border-primary/10 p-4 text-sm"><span className="truncate">{record.name || "Unnamed user"}</span><span className="truncate text-primary/55">{record.email}</span><select value={record.role ?? "user"} onChange={(event) => void changeRole(record, event.target.value)} className="border border-primary/15 bg-black px-2 py-2 text-xs text-primary"><option value="user">User</option><option value="admin">Admin</option></select></div>)}</section>}
+      {activeTab === "users" && <section className="mt-8 border border-primary/15"><div className="flex items-center justify-between border-b border-primary/10 p-4 text-xs uppercase tracking-[0.14em] text-primary/40"><span>Name</span><span>Email</span><span>{isSuperAdmin ? "Role" : "Access"}</span></div>{users.map((record) => <div key={record.id} className="grid grid-cols-[1fr_1fr_120px] items-center gap-4 border-b border-primary/10 p-4 text-sm"><span className="truncate">{record.name || "Unnamed user"}</span><span className="truncate text-primary/55">{record.email}</span>{isSuperAdmin ? <select value={record.role ?? "user"} onChange={(event) => void changeRole(record, event.target.value)} className="border border-primary/15 bg-black px-2 py-2 text-xs text-primary"><option value="user">User</option><option value="admin">Admin</option></select> : <span className="text-xs text-primary/45">Restricted</span>}</div>)}</section>}
 
       {activeTab === "settings" && <section className="mt-8 max-w-xl border border-primary/15 p-5"><h2 className="text-xl font-medium">Certificate criteria</h2><p className="mt-2 text-sm leading-6 text-primary/55">Server-side certificate issuance reads these values from Firestore.</p><form onSubmit={saveCriteria} className="mt-5 space-y-4"><label className="block text-sm">Minimum raw WPM<input type="number" min="1" value={criteria.minRawWpm} onChange={(event) => setCriteria({ ...criteria, minRawWpm: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" /></label><label className="block text-sm">Minimum accuracy<input type="number" min="1" max="100" value={criteria.minAccuracy} onChange={(event) => setCriteria({ ...criteria, minAccuracy: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" /></label><button className="bg-primary px-4 py-2 text-sm font-semibold text-black">Save criteria</button></form></section>}
     </main>

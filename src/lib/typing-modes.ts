@@ -1,7 +1,9 @@
 export const durations = [1, 2, 3, 5, 10, 15, 20, 30] as const;
 export const wordCounts = [25, 50, 75, 100] as const;
+export const difficultyLevels = ["easy", "medium", "hard"] as const;
 
 export type TypingMode = "test" | "practice" | "words";
+export type DifficultyLevel = (typeof difficultyLevels)[number];
 
 export const modeCopy = {
   test: {
@@ -24,12 +26,26 @@ export const modeCopy = {
   },
 } satisfies Record<TypingMode, { label: string; title: string; description: string; seo: string }>;
 
-export function getDurationHref(mode: Exclude<TypingMode, "words">, duration: number) {
-  return `/${mode === "test" ? "typing-test" : "typing-practice"}/${duration}-minute`;
+export function normalizeDifficulty(value?: string | null): DifficultyLevel {
+  return difficultyLevels.includes(value as DifficultyLevel) ? (value as DifficultyLevel) : "medium";
 }
 
-export function getWordHref(count: number) {
-  return `/word-typing-test/${count}-words`;
+export function getDifficultyLabel(level: DifficultyLevel) {
+  return level === "easy" ? "Easy" : level === "hard" ? "Hard" : "Medium";
+}
+
+export function getDifficultyHint(level: DifficultyLevel) {
+  return level === "easy" ? "Relaxed start" : level === "hard" ? "Tighter pace" : "Balanced pace";
+}
+
+export function getDurationHref(mode: Exclude<TypingMode, "words">, duration: number, difficulty: DifficultyLevel = "medium") {
+  const base = `/${mode === "test" ? "typing-test" : "typing-practice"}/${duration}-minute`;
+  return difficulty === "medium" ? base : `${base}?difficulty=${difficulty}`;
+}
+
+export function getWordHref(count: number, difficulty: DifficultyLevel = "medium") {
+  const base = `/word-typing-test/${count}-words`;
+  return difficulty === "medium" ? base : `${base}?difficulty=${difficulty}`;
 }
 
 export function getDurationFromSlug(slug: string) {

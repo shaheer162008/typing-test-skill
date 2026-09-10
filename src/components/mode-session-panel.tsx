@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Clock3, Target } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { durations, getDurationHref, getWordHref, wordCounts } from "@/lib/typing-modes";
+import { difficultyLevels, getDifficultyHint, getDifficultyLabel, getDurationHref, getWordHref, normalizeDifficulty, type DifficultyLevel, durations, wordCounts } from "@/lib/typing-modes";
 import { useFirestoreCategories } from "@/lib/firestore-categories";
 
 type ModeSessionPanelProps = { mode: "practice" | "words" };
@@ -19,9 +19,10 @@ export default function ModeSessionPanel({ mode }: ModeSessionPanelProps) {
   const options = (isWords ? firestoreCategories.map((category) => category.wordCount).filter((value): value is number => Boolean(value)) : firestoreCategories.map((category) => category.durationMinutes).filter((value): value is number => Boolean(value))).sort((first, second) => first - second);
   const availableOptions = options.length ? options : (isWords ? [...wordCounts] : [...durations]);
   const [selected, setSelected] = useState(isWords ? 50 : 5);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>("medium");
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const selectedHref = isWords ? getWordHref(selected) : getDurationHref("practice", selected);
+  const selectedHref = isWords ? getWordHref(selected, difficulty) : getDurationHref("practice", selected, difficulty);
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -44,9 +45,10 @@ export default function ModeSessionPanel({ mode }: ModeSessionPanelProps) {
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-primary">{isWords ? <Target className="h-5 w-5" aria-hidden="true" /> : <Clock3 className="h-5 w-5" aria-hidden="true" />}</div>
           </div>
 
-          <div className="mt-8">
-            <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">{isWords ? "Passage length" : "Practice duration"}</span>
-            <div className="relative mt-3">
+          <div className="mt-8 space-y-4">
+            <div>
+              <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">{isWords ? "Passage length" : "Practice duration"}</span>
+              <div className="relative mt-3">
               <button type="button" aria-expanded={isOpen} aria-haspopup="listbox" aria-controls={`${mode}-hero-options`} onClick={() => setIsOpen((open) => !open)} className="flex w-full items-center justify-between border border-black/25 bg-[#f7f5ec] px-4 py-3.5 text-left text-black outline-none transition hover:border-black/60 focus:border-black focus:ring-2 focus:ring-black/20">
                 <span><span className="block text-lg font-semibold tracking-[-0.03em]">{isWords ? `${selected} words` : `${selected} minutes`}</span><span className="mt-0.5 block text-xs text-black/50">{getNote(mode, selected)}</span></span>
                 <ChevronDown className={`h-5 w-5 text-black/60 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -55,10 +57,27 @@ export default function ModeSessionPanel({ mode }: ModeSessionPanelProps) {
                 <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">{availableOptions.map((value) => <button key={value} type="button" role="option" aria-selected={value === selected} onClick={() => { setSelected(value); setIsOpen(false); }} className={`flex min-h-16 flex-col items-start justify-center border px-3 text-left transition ${value === selected ? "border-black bg-black text-primary" : "border-black/10 text-black hover:border-black/45 hover:bg-black/5"}`}><span className="text-base font-semibold">{isWords ? `${value} words` : `${value} min`}</span><span className={`text-[10px] ${value === selected ? "text-primary/60" : "text-black/45"}`}>{getNote(mode, value)}</span></button>)}</div>
               </div> : null}
             </div>
+            </div>
+            <div>
+              <span className="text-xs font-medium uppercase tracking-[0.16em] text-black/55">Difficulty</span>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {difficultyLevels.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setDifficulty(level)}
+                    className={`border px-3 py-2 text-xs font-medium transition ${difficulty === level ? "border-black bg-black text-primary" : "border-black/15 bg-[#f7f5ec] text-black"}`}
+                  >
+                    {getDifficultyLabel(level)}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-black/50">{getDifficultyHint(difficulty)}</p>
+            </div>
           </div>
 
           <Link href={selectedHref} className="group mt-4 flex items-center justify-between bg-black px-5 py-4 text-sm font-semibold text-primary transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-primary">
-            {isWords ? `Start the ${selected}-word test` : `Start ${selected}-minute practice`}<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            {isWords ? `Start the ${selected}-word ${normalizeDifficulty(difficulty)} test` : `Start ${selected}-minute ${normalizeDifficulty(difficulty)} practice`}<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
           </Link>
           <div className="mt-5 grid grid-cols-2 gap-3 text-xs text-black/55"><span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" aria-hidden="true" />No account required</span><span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" aria-hidden="true" />Instant feedback</span></div>
         </div>

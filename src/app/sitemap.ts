@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     getDurationHref("test", duration),
     getDurationHref("practice", duration),
   ]);
-  const wordRoutes = wordCounts.map(getWordHref);
+  const wordRoutes = wordCounts.map((count) => getWordHref(count));
 
   return [...staticRoutes, ...timedRoutes, ...wordRoutes].map((path) => ({
     url: `${siteUrl}${path}`,

@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 import { getTargetText } from "@/lib/typing-passage";
-import type { TypingMode } from "@/lib/typing-modes";
+import { normalizeDifficulty, type DifficultyLevel, type TypingMode } from "@/lib/typing-modes";
 
 export const runtime = "nodejs";
 
@@ -9,10 +9,11 @@ const validModes: TypingMode[] = ["test", "practice", "words"];
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as { mode?: TypingMode; durationMinutes?: number; wordCount?: number; lessonId?: string };
+    const body = await request.json() as { mode?: TypingMode; durationMinutes?: number; wordCount?: number; lessonId?: string; difficulty?: string };
     const mode = body.mode;
     if (!mode || !validModes.includes(mode)) return Response.json({ error: "Invalid mode." }, { status: 400 });
 
+    const difficulty: DifficultyLevel = normalizeDifficulty(body.difficulty);
     const durationMinutes = mode === "words" ? undefined : body.durationMinutes;
     const wordCount = mode === "words" ? body.wordCount : undefined;
     if (mode === "words" && ![25, 50, 75, 100].includes(wordCount ?? 0)) return Response.json({ error: "Invalid word count." }, { status: 400 });
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     const user = authorization?.startsWith("Bearer ") ? await getAdminAuth().verifyIdToken(authorization.slice(7)) : null;
     const sessionId = randomUUID();
     const nonce = randomBytes(24).toString("hex");
-    let targetText = getTargetText(mode, durationMinutes, wordCount);
+    let targetText = getTargetText(mode, durationMinutes, wordCount, difficulty);
     if (body.lessonId) {
       const lessonSnapshot = await getAdminDb().collection("categories").doc(mode === "words" ? `words-${wordCount}` : `${mode === "practice" ? "practice" : "timed"}-${durationMinutes}-minute`).collection("lessons").doc(body.lessonId).get();
       if (lessonSnapshot.exists && lessonSnapshot.data()?.enabled === true) targetText = String(lessonSnapshot.data()?.text ?? targetText);
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       nonce,
       uid: user?.uid ?? null,
       mode,
+      difficulty,
       durationMinutes: durationMinutes ?? null,
       wordCount: wordCount ?? null,
       lessonId: body.lessonId ?? null,
@@ -42,7 +44,7 @@ export async function POST(request: Request) {
       status: "open",
     });
 
-    return Response.json({ sessionId, nonce, targetText, expiresAt: createdAt + 2 * 60 * 60 * 1000 });
+    return Response.json({ sessionId, nonce, targetText, difficulty, expiresAt: createdAt + 2 * 60 * 60 * 1000 });
   } catch (error) {
     console.error("test session creation failed", error);
     return Response.json({ error: "Test session service is not configured." }, { status: 503 });

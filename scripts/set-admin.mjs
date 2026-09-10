@@ -23,5 +23,5 @@ function credential() {
 const app = getApps().length ? getApps()[0] : initializeApp({ credential: credential() });
 const auth = getAuth(app);
 const user = await auth.getUserByEmail(email);
-await auth.setCustomUserClaims(user.uid, { ...user.customClaims, admin: true, role: "admin" });
+await auth.setCustomUserClaims(user.uid, { ...user.customClaims, admin: true, role: "admin", superAdmin: true });
 console.log(`Admin claim set for ${email}. Sign out and sign in again to refresh the token.`);

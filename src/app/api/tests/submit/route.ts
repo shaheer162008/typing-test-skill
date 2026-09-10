@@ -11,6 +11,7 @@ type TestSession = {
   uid: string | null;
   targetText: string;
   mode: "test" | "practice" | "words";
+  difficulty?: "easy" | "medium" | "hard";
   durationMinutes: number | null;
   wordCount: number | null;
   createdAt: number;
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
 
     const result = calculateResult(session, events);
     const resultRef = getAdminDb().collection("testResults").doc();
-    await resultRef.set({ ...result, uid: user.uid, sessionId: body.sessionId, mode: session.mode, durationMinutes: session.durationMinutes, wordCount: session.wordCount, createdAt: Date.now(), reviewStatus: result.suspicious ? "pending" : "clear" });
+    await resultRef.set({ ...result, uid: user.uid, sessionId: body.sessionId, mode: session.mode, difficulty: session.difficulty ?? "medium", durationMinutes: session.durationMinutes, wordCount: session.wordCount, createdAt: Date.now(), reviewStatus: result.suspicious ? "pending" : "clear" });
     await sessionRef.update({ status: "submitted", resultId: resultRef.id });
 
     let certificateId: string | null = null;
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
           name: profile.displayName ?? "Typing Test Skill learner",
           categoryId: session.mode === "words" ? `words-${session.wordCount}` : `${session.mode}-${session.durationMinutes}`,
           mode: session.mode,
+          difficulty: session.difficulty ?? "medium",
           durationMinutes: session.durationMinutes,
           wordCount: session.wordCount,
           rawWpm: result.rawWpm,

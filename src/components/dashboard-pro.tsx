@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Navbar from "@/components/navbar";
 import { useAuth } from "@/components/auth-provider";
+import CertificateActions from "@/components/certificate-actions";
 import { db } from "@/lib/firebase-client";
 import { getCertificateTier } from "@/lib/certificate-tiers";
 
@@ -99,7 +100,115 @@ export default function DashboardPro() {
             <div className="mt-4 flex items-center justify-between border-t border-primary/10 pt-4"><span className="text-xs text-primary/40">Page {Math.min(page + 1, pageCount)} of {pageCount}</span><div className="flex gap-2"><button type="button" onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} aria-label="Previous page" className="border border-primary/15 p-2 disabled:opacity-30"><ArrowLeft className="h-4 w-4" /></button><button type="button" onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))} disabled={page >= pageCount - 1} aria-label="Next page" className="border border-primary/15 p-2 disabled:opacity-30"><ArrowRight className="h-4 w-4" /></button></div></div>
           </section>
 
-          <aside className="space-y-8"><section className="border border-primary/15 bg-[#f7f5ec] p-5 text-[#171716] sm:p-6"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">Typing Test Skill</p><p className="mt-2 text-xs uppercase tracking-[0.16em] text-black/40">{certificateTab === "earned" && hasEarnedCertificate ? `Certificate ${certificatePage + 1} of ${certificates.length}` : certificateTab === "earned" ? "No certificates" : "Certificate path"}</p></div><Award className="h-7 w-7" strokeWidth={1.4} /></div><div className="mt-5 flex border-b border-black/15"><button type="button" onClick={() => setCertificateTab("earned")} className={`px-3 py-2 text-xs ${certificateTab === "earned" ? "border-b-2 border-black font-semibold" : "text-black/45"}`}>Earned</button><button type="button" onClick={() => setCertificateTab("locked")} className={`px-3 py-2 text-xs ${certificateTab === "locked" ? "border-b-2 border-black font-semibold" : "text-black/45"}`}>How to unlock</button></div>{certificateTab === "earned" && visibleCertificate ? <><div className="py-8"><p className="text-[10px] uppercase tracking-[0.18em] text-black/40">This certifies that</p><h2 className="mt-2 text-3xl font-medium tracking-[-0.05em]">{visibleCertificate.name}</h2><div className="mt-4 h-px w-20 bg-black/25" /><p className="mt-4 text-sm font-medium text-black/70">{visibleCertificate.tierLabel ?? "Typing certificate"}</p><p className="mt-2 text-sm text-black/55">{visibleCertificate.rawWpm} raw WPM · {visibleCertificate.accuracy}% accuracy</p><p className="mt-2 text-xs text-black/50">{visibleCertificate.wordCount ? `${visibleCertificate.wordCount}-word test` : `${visibleCertificate.durationMinutes}-minute typing test`}</p><p className="mt-2 text-xs text-black/50">Completed {formatDateTime(visibleCertificate.issuedAt)} ({timeZone})</p></div><div className="flex items-center justify-between border-t border-black/15 pt-4 text-[10px] uppercase tracking-[0.12em] text-black/45"><span>ID {visibleCertificate.certificateId}</span><CheckCircle2 className="h-4 w-4 text-black/70" /></div>{certificates.length > 1 && <div className="mt-5 flex justify-between border-t border-black/15 pt-4"><button type="button" onClick={() => setCertificatePage((current) => Math.max(0, current - 1))} disabled={certificatePage === 0} aria-label="Previous certificate" className="border border-black/20 p-2 disabled:opacity-30"><ArrowLeft className="h-4 w-4" /></button><button type="button" onClick={() => setCertificatePage((current) => Math.min(certificates.length - 1, current + 1))} disabled={certificatePage >= certificates.length - 1} aria-label="Next certificate" className="border border-black/20 p-2 disabled:opacity-30"><ArrowRight className="h-4 w-4" /></button></div>}</> : certificateTab === "earned" ? <div className="py-10"><LockKeyhole className="h-6 w-6 text-black/45" /><p className="mt-4 text-lg font-medium">No certificate yet.</p><p className="mt-2 text-sm leading-6 text-black/55">Complete a timed or word test with the required accuracy to unlock your first certificate.</p></div> : <div className="py-8"><p className="text-lg font-medium">Your next certificate: {nextTier.label}</p><p className="mt-2 text-sm leading-6 text-black/55">Reach {nextTier.minWpm}+ raw WPM with at least 95% accuracy in a timed or word test.</p><div className="mt-5 h-2 bg-black/15"><div className="h-2 bg-black transition-[width]" style={{ width: `${Math.min(100, nextTier.minWpm ? (bestSpeed / nextTier.minWpm) * 100 : 0)}%` }} /></div><p className="mt-2 text-xs text-black/50">Current best: {bestSpeed || 0} raw WPM</p><Link href="/typing-test/1-minute" className="mt-5 inline-flex bg-black px-4 py-2 text-xs font-semibold text-primary">Start an eligible test</Link></div>}</section><section className="border border-primary/15 p-5"><p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">Certificate status</p><p className="mt-3 text-sm leading-6 text-primary/55">{certificates.length ? `${certificates.length} permanent certificate${certificates.length === 1 ? "" : "s"} issued.` : "No permanent certificates issued yet."}</p><Link href="/certificates" className="mt-4 inline-flex text-xs text-primary underline decoration-primary/25 underline-offset-4">Verify certificates</Link></section></aside>
+          <aside className="space-y-8">
+            <section className="border border-primary/15 bg-[#f7f5ec] p-5 text-[#171716] sm:p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">Typing Test Skill</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.16em] text-black/40">
+                    {certificateTab === "earned" && hasEarnedCertificate
+                      ? `Certificate ${certificatePage + 1} of ${certificates.length}`
+                      : certificateTab === "earned"
+                        ? "No certificates"
+                        : "Certificate path"}
+                  </p>
+                </div>
+                <Award className="h-7 w-7" strokeWidth={1.4} />
+              </div>
+
+              <div className="mt-5 flex border-b border-black/15">
+                <button type="button" onClick={() => setCertificateTab("earned")} className={`px-3 py-2 text-xs ${certificateTab === "earned" ? "border-b-2 border-black font-semibold" : "text-black/45"}`}>
+                  Earned
+                </button>
+                <button type="button" onClick={() => setCertificateTab("locked")} className={`px-3 py-2 text-xs ${certificateTab === "locked" ? "border-b-2 border-black font-semibold" : "text-black/45"}`}>
+                  How to unlock
+                </button>
+              </div>
+
+              {certificateTab === "earned" && visibleCertificate ? (
+                <>
+                  <div className="py-8">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-black/40">This certifies that</p>
+                    <h2 className="mt-2 text-3xl font-medium tracking-[-0.05em]">{visibleCertificate.name}</h2>
+                    <div className="mt-4 h-px w-20 bg-black/25" />
+                    <p className="mt-4 text-sm font-medium text-black/70">{visibleCertificate.tierLabel ?? "Typing certificate"}</p>
+                    <p className="mt-2 text-sm text-black/55">{visibleCertificate.rawWpm} raw WPM · {visibleCertificate.accuracy}% accuracy</p>
+                    <p className="mt-2 text-xs text-black/50">{visibleCertificate.wordCount ? `${visibleCertificate.wordCount}-word test` : `${visibleCertificate.durationMinutes}-minute typing test`}</p>
+                    <p className="mt-2 text-xs text-black/50">Completed {formatDateTime(visibleCertificate.issuedAt)} ({timeZone})</p>
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between border-t border-black/15 pt-4 text-[10px] uppercase tracking-[0.12em] text-black/45">
+                    <span>ID {visibleCertificate.certificateId}</span>
+                    <CheckCircle2 className="h-4 w-4 text-black/70" />
+                  </div>
+
+                  {certificates.length > 1 && (
+                    <div className="mt-5 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCertificatePage((current) => Math.max(0, current - 1))}
+                        disabled={certificatePage === 0}
+                        aria-label="Previous certificate"
+                        className="border border-black/20 px-2 py-2 text-[10px] uppercase tracking-[0.12em] text-black/70 disabled:opacity-30"
+                      >
+                        Prev
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCertificatePage((current) => Math.min(certificates.length - 1, current + 1))}
+                        disabled={certificatePage >= certificates.length - 1}
+                        aria-label="Next certificate"
+                        className="border border-black/20 px-2 py-2 text-[10px] uppercase tracking-[0.12em] text-black/70 disabled:opacity-30"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="mt-5 border-t border-black/15 pt-4">
+                    <CertificateActions certificateId={visibleCertificate.certificateId} />
+                  </div>
+                </>
+              ) : certificateTab === "earned" ? (
+                <div className="py-8 text-sm text-black/60">
+                  <div className="flex items-center gap-3">
+                    <LockKeyhole className="h-5 w-5 text-black/45" />
+                    <p className="text-lg font-medium text-black">No certificate yet.</p>
+                  </div>
+                  <p className="mt-4 leading-6 text-black/60">
+                    Complete a valid timed or word test with the required accuracy to unlock your first certificate.
+                  </p>
+                </div>
+              ) : (
+                <div className="py-8 text-sm text-black/60">
+                  <p className="text-lg font-medium text-black">Your next certificate: {nextTier.label}</p>
+                  <p className="mt-2 leading-6 text-black/60">
+                    Reach {nextTier.minWpm}+ raw WPM with at least 95% accuracy in a qualifying test.
+                  </p>
+                  <div className="mt-5 h-2 bg-black/15">
+                    <div
+                      className="h-2 bg-black transition-[width]"
+                      style={{ width: `${Math.min(100, nextTier.minWpm ? (bestSpeed / nextTier.minWpm) * 100 : 0)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-black/50">Current best: {bestSpeed || 0} raw WPM</p>
+                  <Link href="/typing-test/1-minute" className="mt-5 inline-flex bg-black px-4 py-2 text-xs font-semibold text-primary">
+                    Start an eligible test
+                  </Link>
+                </div>
+              )}
+            </section>
+
+            <section className="border border-primary/15 p-5">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">Certificate status</p>
+              <p className="mt-3 text-sm leading-6 text-primary/55">
+                {certificates.length ? `${certificates.length} permanent certificate${certificates.length === 1 ? "" : "s"} issued.` : "No permanent certificates issued yet."}
+              </p>
+              <Link href="/certificates" className="mt-4 inline-flex text-xs text-primary underline decoration-primary/25 underline-offset-4">
+                Verify certificates
+              </Link>
+            </section>
+          </aside>
         </div>
 
         {selectedResult && <section className="mt-8 border border-primary/15 bg-white/[0.02] p-5 sm:p-6" aria-labelledby="analysis-title"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-primary/40">Detailed analysis</p><h2 id="analysis-title" className="mt-2 text-2xl font-medium">{resultLabel(selectedResult)}</h2></div><button type="button" onClick={() => setSelectedResult(null)} className="text-xs text-primary/55 underline underline-offset-4">Close</button></div><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Raw WPM", selectedResult.rawWpm ?? "—"], ["Net WPM", selectedResult.netWpm ?? "—"], ["CPM", selectedResult.cpm ?? "—"], ["Completion time", formatDuration(selectedResult.elapsedMs)], ["Correct words", selectedResult.correctWords ?? "—"], ["Incorrect words", selectedResult.incorrectWords ?? "—"], ["Consistency", selectedResult.consistency ? `${selectedResult.consistency}%` : "—"], ["Backspaces", selectedResult.backspaceCount ?? "—"]].map(([label, value]) => <div key={String(label)} className="border border-primary/10 bg-black/20 p-4"><p className="text-[10px] uppercase tracking-[0.14em] text-primary/40">{label}</p><p className="mt-2 text-xl font-medium">{value}</p></div>)}</div><div className="mt-6"><p className="text-xs uppercase tracking-[0.16em] text-primary/40">Mistake breakdown</p>{selectedResult.mistakes?.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{selectedResult.mistakes.slice(0, 20).map((mistake, index) => <div key={`${mistake.index}-${index}`} className="border border-red-300/20 bg-red-300/[0.04] px-3 py-2 text-xs text-red-100">Position {mistake.index + 1}: expected “{mistake.expected || "space"}”, typed “{mistake.actual || "space"}”</div>)}</div> : <p className="mt-3 text-sm text-emerald-200">No recorded character mistakes.</p>}</div></section>}

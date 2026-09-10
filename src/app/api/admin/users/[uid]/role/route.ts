@@ -7,7 +7,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ui
     const authorization = request.headers.get("authorization");
     if (!authorization?.startsWith("Bearer ")) return Response.json({ error: "Authentication required." }, { status: 401 });
     const actor = await getAdminAuth().verifyIdToken(authorization.slice(7));
-    if (actor.admin !== true) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const isSuperAdmin = actor.superAdmin === true || actor.role === "super_admin";
+    if (!isSuperAdmin) return Response.json({ error: "Super admin access required." }, { status: 403 });
     const { uid } = await params;
     const body = await request.json() as { role?: string };
     if (body.role !== "admin" && body.role !== "user") return Response.json({ error: "Role must be admin or user." }, { status: 400 });

@@ -8,10 +8,12 @@ import HeroSection from "@/components/ui/hero-section-enterprise-ready-landing-p
 
 const founderCards = [
   {
-    name: "Waseem Jafar",
-    role: "Owner & Community Lead",
+    name: "Waseem Jaffar",
+    role: "Founder · Strategy & Platform Development",
     description:
-      "Waseem leads the vision behind Typing Test Skill with a strong focus on community, consistency, and helping people build real confidence through everyday practice.",
+      "TypingTestSkill began with a simple vision — to make typing practice more useful, accessible, and rewarding. Today, that vision is being brought to life with a dedicated team, focused on creating better tools and a better experience for every user.",
+    quote: "Building a platform where practice turns into progress.",
+    link: "https://www.linkedin.com/in/waseemjafar91",
   },
   {
     name: "Muhammad Shaheer",
@@ -114,6 +116,12 @@ export default function AboutPage() {
                   <h3 className="text-2xl font-medium tracking-tight text-primary">{person.name}</h3>
                   <p className="mt-2 text-sm uppercase tracking-[0.14em] text-primary/45">{person.role}</p>
                   <p className="mt-5 text-base leading-relaxed text-primary/65">{person.description}</p>
+
+                  {"quote" in person && person.quote ? (
+                    <blockquote className="mt-5 border-l border-primary/25 pl-4 text-sm italic leading-relaxed text-primary/70">
+                      “{person.quote}”
+                    </blockquote>
+                  ) : null}
 
                   {person.link ? (
                     <a

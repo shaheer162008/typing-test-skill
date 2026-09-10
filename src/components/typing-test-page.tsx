@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/navbar";
 import { ArrowRight, Award, BarChart3, BookOpen, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import type { TypingMode } from "@/lib/typing-modes";
+import { getDifficultyLabel, normalizeDifficulty, type DifficultyLevel, type TypingMode } from "@/lib/typing-modes";
 import { getTargetText } from "@/lib/typing-passage";
 import { useAuth } from "@/components/auth-provider";
 import { useFirestoreLessons } from "@/lib/firestore-lessons";
@@ -19,14 +19,14 @@ const keyboardRows = [
 
 const keyWidth: Record<string, number> = { Space: 6 };
 
-type TypingTestPageProps = { mode: TypingMode; durationMinutes?: number; wordCount?: number; lessonId?: string };
+type TypingTestPageProps = { mode: TypingMode; durationMinutes?: number; wordCount?: number; lessonId?: string; difficulty?: string | null };
 
 function getWpm(correctChars: number, elapsedMs: number) {
   if (elapsedMs <= 0) return 0;
   return Math.max(0, Math.round(correctChars / 5 / (elapsedMs / 60000) || 0));
 }
 
-export default function TypingTestPage({ mode, durationMinutes, wordCount, lessonId }: TypingTestPageProps) {
+export default function TypingTestPage({ mode, durationMinutes, wordCount, lessonId, difficulty }: TypingTestPageProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const currentCharRef = useRef<HTMLSpanElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
@@ -41,12 +41,13 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
   const sessionRef = useRef<{ sessionId: string; nonce: string } | null>(null);
   const telemetryRef = useRef<Array<{ key: string; at: number }>>([]);
   const { user } = useAuth();
+  const normalizedDifficulty: DifficultyLevel = normalizeDifficulty(difficulty);
   const categoryId = mode === "words" ? `words-${wordCount}` : `${mode === "practice" ? "practice" : "timed"}-${durationMinutes}-minute`;
   const { lessons: firestoreLessons } = useFirestoreLessons(categoryId);
   const selectedLesson = firestoreLessons.find((lesson) => lesson.id === lessonId);
   const targetText = useMemo(() => {
-    return selectedLesson?.text ?? getTargetText(mode, durationMinutes, wordCount);
-  }, [durationMinutes, mode, selectedLesson?.text, wordCount]);
+    return selectedLesson?.text ?? getTargetText(mode, durationMinutes, wordCount, normalizedDifficulty);
+  }, [durationMinutes, mode, normalizedDifficulty, selectedLesson?.text, wordCount]);
   const timeLimitMs = durationMinutes ? durationMinutes * 60000 : null;
   const finishedByTime = Boolean(timeLimitMs && elapsedMs >= timeLimitMs);
   const completed = mode === "words" ? typed.length >= targetText.length : finishedByTime || typed.length >= targetText.length;
@@ -62,7 +63,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
     void user.getIdToken().then((token) => fetch("/api/tests/session", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mode, durationMinutes, wordCount, lessonId }),
+      body: JSON.stringify({ mode, durationMinutes, wordCount, lessonId, difficulty: normalizedDifficulty }),
     })).then(async (response) => {
       if (!response.ok || cancelled) return;
       const session = await response.json() as { sessionId: string; nonce: string };
@@ -167,6 +168,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
       mistakes,
       completedAt: new Date().toISOString(),
       certificateId: null,
+      difficulty: normalizedDifficulty,
       name: "Typing Test Skill learner",
     });
     window.localStorage.setItem("typing-test-results", JSON.stringify(results.slice(0, 20)));
@@ -174,7 +176,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
   }, [accuracy, completed, durationMinutes, mode, mistakes, typed.length, wordCount, wpm]);
 
   if (completed) {
-    const sessionTitle = mode === "words" ? `${wordCount}-word test` : `${durationMinutes}-minute ${mode === "practice" ? "practice" : "typing test"}`;
+    const sessionTitle = mode === "words" ? `${wordCount}-word ${getDifficultyLabel(normalizedDifficulty).toLowerCase()} test` : `${durationMinutes}-minute ${mode === "practice" ? "practice" : "typing test"} · ${getDifficultyLabel(normalizedDifficulty)}`;
     const completionTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date());
     return (
       <div className="min-h-screen bg-[#080808] text-primary">
