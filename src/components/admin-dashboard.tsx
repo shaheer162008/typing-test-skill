@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { db } from "@/lib/firebase-client";
 
 type Category = { id: string; title: string; type: string; mode: string; durationMinutes?: number | null; wordCount?: number | null; enabled: boolean };
-type Lesson = { id: string; categoryId: string; title: string; text: string; focus?: string; enabled: boolean };
+type Lesson = { id: string; categoryId: string; title: string; text: string; focus?: string; order?: number; mode?: string; difficulty?: string | null; duration?: number | null; enabled: boolean };
 type ContactMessage = { id: string; name: string; email: string; subject: string; message: string; seen: boolean; createdAt?: { toDate?: () => Date } | number };
 type UserRecord = { id: string; name?: string; email?: string; role?: string };
 type TestResult = { createdAt?: number; rawWpm?: number; accuracy?: number; reviewStatus?: string };
@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [categoryTitle, setCategoryTitle] = useState("");
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonText, setLessonText] = useState("");
+  const [selectedLessonMode, setSelectedLessonMode] = useState<"test" | "practice" | "words" | null>(null);
+  const [selectedLessonDifficulty, setSelectedLessonDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,10 +89,25 @@ export default function AdminDashboard() {
 
   const addLesson = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedCategory || !lessonTitle.trim() || !lessonText.trim()) return;
-    await addDoc(collection(db, "categories", selectedCategory, "lessons"), { title: lessonTitle.trim(), text: lessonText.trim(), focus: "Admin-created lesson", enabled: true, createdAt: Date.now() });
+    if (!selectedCategory || !lessonTitle.trim() || !lessonText.trim() || !selectedLessonMode) return;
+    const order = Math.max(0, ...lessons.map((l) => l.order ?? 0), -1) + 1;
+    const modeLabel = selectedLessonMode === "test" ? "Typing test" : selectedLessonMode === "practice" ? "Typing practice" : "Word test";
+    const diffLabel = selectedLessonMode === "words" ? "" : ` · ${selectedLessonDifficulty.charAt(0).toUpperCase() + selectedLessonDifficulty.slice(1)}`;
+    const focusLabel = `${modeLabel}${diffLabel}`;
+    await addDoc(collection(db, "categories", selectedCategory, "lessons"), { 
+      title: lessonTitle.trim(), 
+      text: lessonText.trim(), 
+      focus: focusLabel,
+      mode: selectedLessonMode,
+      difficulty: selectedLessonMode === "words" ? null : selectedLessonDifficulty,
+      order, 
+      enabled: true, 
+      createdAt: Date.now() 
+    });
     setLessonTitle("");
     setLessonText("");
+    setSelectedLessonMode(null);
+    setSelectedLessonDifficulty("medium");
     setNotice("Lesson added.");
   };
 
@@ -130,19 +147,227 @@ export default function AdminDashboard() {
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-8 text-primary sm:px-8 lg:px-10">
-      <div className="flex flex-col justify-between gap-4 border-b border-primary/10 pb-6 sm:flex-row sm:items-end"><div><p className="text-xs uppercase tracking-[0.2em] text-primary/45">Admin console</p><h1 className="mt-2 text-4xl font-medium tracking-[-0.05em]">Control room</h1></div><span className="text-xs text-primary/45">Live Firestore data</span></div>
-      <nav className="mt-6 flex flex-wrap gap-2" aria-label="Admin sections">{tabs.map((tab) => { const Icon = tab.icon; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 border px-3 py-2 text-xs transition ${activeTab === tab.id ? "border-primary/45 bg-primary text-black" : "border-primary/15 text-primary/60 hover:border-primary/40"}`}><Icon className="h-4 w-4" />{tab.label}</button>; })}</nav>
+      <div className="flex flex-col justify-between gap-4 border-b border-primary/10 pb-6 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-primary/45">Admin console</p>
+          <h1 className="mt-2 text-4xl font-medium tracking-[-0.05em]">Control room</h1>
+        </div>
+        <span className="text-xs text-primary/45">Live Firestore data</span>
+      </div>
+
+      <nav className="mt-6 flex flex-wrap gap-2" aria-label="Admin sections">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 border px-3 py-2 text-xs transition ${activeTab === tab.id ? "border-primary/45 bg-primary text-black" : "border-primary/15 text-primary/60 hover:border-primary/40"}`}>
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
+
       {notice && <p className="mt-5 border border-emerald-300/25 bg-emerald-300/[0.05] px-4 py-3 text-sm text-emerald-100" role="status">{notice}</p>}
 
-      {activeTab === "overview" && <section className="mt-8"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[["All results", stats.total], ["Today", stats.daily], ["Last 7 days", stats.weekly], ["Last 30 days", stats.monthly], ["Review queue", stats.pending]].map(([label, value]) => <article key={String(label)} className="border border-primary/15 bg-white/[0.025] p-5"><p className="text-xs uppercase tracking-[0.14em] text-primary/45">{label}</p><p className="mt-4 text-3xl font-medium">{value}</p></article>)}</div><div className="mt-8 grid gap-8 lg:grid-cols-2"><section className="border border-primary/15 p-5"><h2 className="text-xl font-medium">Realtime health</h2><p className="mt-3 text-sm text-primary/55">{categories.length} categories · {users.length} users · {messages.length} contact messages</p><p className="mt-2 text-sm text-primary/55">{stats.unread} unread messages need review.</p></section><section className="border border-primary/15 p-5"><h2 className="text-xl font-medium">Admin scope</h2><p className="mt-3 text-sm leading-6 text-primary/55">Manage lesson branches, contact inbox, user roles, and server certificate criteria from the live database.</p></section></div></section>}
+      {activeTab === "overview" && (
+        <section className="mt-8">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[["All results", stats.total], ["Today", stats.daily], ["Last 7 days", stats.weekly], ["Last 30 days", stats.monthly], ["Review queue", stats.pending]].map(([label, value]) => (
+              <article key={String(label)} className="border border-primary/15 bg-white/[0.025] p-5">
+                <p className="text-xs uppercase tracking-[0.14em] text-primary/45">{label}</p>
+                <p className="mt-4 text-3xl font-medium">{value}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-8 grid gap-8 lg:grid-cols-2">
+            <section className="border border-primary/15 p-5">
+              <h2 className="text-xl font-medium">Realtime health</h2>
+              <p className="mt-3 text-sm text-primary/55">{categories.length} categories · {users.length} users · {messages.length} contact messages</p>
+              <p className="mt-2 text-sm text-primary/55">{stats.unread} unread messages need review.</p>
+            </section>
+            <section className="border border-primary/15 p-5">
+              <h2 className="text-xl font-medium">Admin scope</h2>
+              <p className="mt-3 text-sm leading-6 text-primary/55">Manage lesson branches, contact inbox, user roles, and server certificate criteria from the live database.</p>
+            </section>
+          </div>
+        </section>
+      )}
 
-      {activeTab === "content" && <section className="mt-8 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]"><div><form onSubmit={addCategory} className="border border-primary/15 p-5"><h2 className="text-xl font-medium">Add category</h2><input value={categoryTitle} onChange={(event) => setCategoryTitle(event.target.value)} placeholder="Category title…" className="mt-4 min-h-11 w-full border border-primary/20 bg-black px-3 text-sm outline-none focus:border-primary/60" /><button className="mt-3 bg-primary px-4 py-2 text-sm font-semibold text-black">Save category</button></form><div className="mt-5 space-y-2">{categories.map((category) => <div key={category.id} className={`flex items-center justify-between border p-3 ${category.id === selectedCategory ? "border-primary/50 bg-primary/[0.06]" : "border-primary/15"}`}><button type="button" onClick={() => setSelectedCategory(category.id)} className="min-w-0 text-left"><span className="block truncate text-sm">{category.title}</span><span className="text-xs text-primary/45">{category.type} · {category.id}</span></button><button type="button" onClick={() => void removeCategory(category)} aria-label={`Delete ${category.title}`} className="p-2 text-primary/45 hover:text-red-200"><Trash2 className="h-4 w-4" /></button></div>)}</div></div><div className="border border-primary/15 p-5"><h2 className="text-xl font-medium">{selectedCategory ? "Lessons in selected category" : "Select a category"}</h2>{selectedCategory && <form onSubmit={addLesson} className="mt-5 grid gap-3"><input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="Lesson title…" className="min-h-11 border border-primary/20 bg-black px-3 text-sm outline-none focus:border-primary/60" /><textarea value={lessonText} onChange={(event) => setLessonText(event.target.value)} placeholder="Lesson passage…" rows={5} className="border border-primary/20 bg-black px-3 py-3 text-sm outline-none focus:border-primary/60" /><button className="w-fit bg-primary px-4 py-2 text-sm font-semibold text-black">Add lesson</button></form>}<div className="mt-6 space-y-3">{lessons.map((lesson) => <article key={lesson.id} className="border border-primary/10 p-4"><p className="text-sm font-medium">{lesson.title}</p><p className="mt-2 text-xs leading-5 text-primary/55">{lesson.text}</p><span className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-emerald-200"><Check className="h-3 w-3" /> {lesson.enabled ? "Enabled" : "Disabled"}</span></article>)}</div></div></section>}
+      {activeTab === "content" && (
+        <section className="mt-8 grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <form onSubmit={addCategory} className="border border-primary/15 p-5">
+              <h2 className="text-xl font-medium">Add category</h2>
+              <input value={categoryTitle} onChange={(event) => setCategoryTitle(event.target.value)} placeholder="Category title…" className="mt-4 min-h-11 w-full border border-primary/20 bg-black px-3 text-sm outline-none focus:border-primary/60" />
+              <button className="mt-3 bg-primary px-4 py-2 text-sm font-semibold text-black">Save category</button>
+            </form>
 
-      {activeTab === "inbox" && <section className="mt-8 space-y-3">{messages.length ? messages.map((message) => <article key={message.id} className={`border p-5 ${message.seen ? "border-primary/10" : "border-primary/40 bg-primary/[0.04]"}`}><div className="flex flex-col justify-between gap-3 sm:flex-row"><div><p className="text-sm font-medium">{message.subject}</p><p className="mt-1 text-xs text-primary/50">{message.name} · {message.email} · {dateLabel(message.createdAt)}</p></div>{message.seen ? <span className="text-xs text-primary/40">Seen</span> : <button type="button" onClick={() => void markSeen(message)} className="text-xs text-primary underline underline-offset-4">Mark seen</button>}</div><p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-primary/70">{message.message}</p></article>) : <p className="border border-dashed border-primary/15 p-8 text-sm text-primary/50">No contact messages yet.</p>}</section>}
+            <div className="mt-5 space-y-2">
+              {categories.map((category) => (
+                <div key={category.id} className={`flex items-center justify-between border p-3 ${category.id === selectedCategory ? "border-primary/50 bg-primary/[0.06]" : "border-primary/15"}`}>
+                  <button type="button" onClick={() => setSelectedCategory(category.id)} className="min-w-0 text-left">
+                    <span className="block truncate text-sm">{category.title}</span>
+                    <span className="text-xs text-primary/45">{category.type} · {category.id}</span>
+                  </button>
+                  <button type="button" onClick={() => void removeCategory(category)} aria-label={`Delete ${category.title}`} className="p-2 text-primary/45 hover:text-red-200">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {activeTab === "users" && <section className="mt-8 border border-primary/15"><div className="flex items-center justify-between border-b border-primary/10 p-4 text-xs uppercase tracking-[0.14em] text-primary/40"><span>Name</span><span>Email</span><span>{isSuperAdmin ? "Role" : "Access"}</span></div>{users.map((record) => <div key={record.id} className="grid grid-cols-[1fr_1fr_120px] items-center gap-4 border-b border-primary/10 p-4 text-sm"><span className="truncate">{record.name || "Unnamed user"}</span><span className="truncate text-primary/55">{record.email}</span>{isSuperAdmin ? <select value={record.role ?? "user"} onChange={(event) => void changeRole(record, event.target.value)} className="border border-primary/15 bg-black px-2 py-2 text-xs text-primary"><option value="user">User</option><option value="admin">Admin</option></select> : <span className="text-xs text-primary/45">Restricted</span>}</div>)}</section>}
+          <div className="border border-primary/15 p-5">
+            <h2 className="text-xl font-medium">{selectedCategory ? "Lessons in selected category" : "Select a category"}</h2>
 
-      {activeTab === "settings" && <section className="mt-8 max-w-xl border border-primary/15 p-5"><h2 className="text-xl font-medium">Certificate criteria</h2><p className="mt-2 text-sm leading-6 text-primary/55">Server-side certificate issuance reads these values from Firestore.</p><form onSubmit={saveCriteria} className="mt-5 space-y-4"><label className="block text-sm">Minimum raw WPM<input type="number" min="1" value={criteria.minRawWpm} onChange={(event) => setCriteria({ ...criteria, minRawWpm: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" /></label><label className="block text-sm">Minimum accuracy<input type="number" min="1" max="100" value={criteria.minAccuracy} onChange={(event) => setCriteria({ ...criteria, minAccuracy: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" /></label><button className="bg-primary px-4 py-2 text-sm font-semibold text-black">Save criteria</button></form></section>}
+            {selectedCategory && (
+              <form onSubmit={addLesson} className="mt-5 space-y-4">
+                {/* Step 1: Select Mode */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">1. Choose lesson type</label>
+                  <select value={selectedLessonMode || ""} onChange={(event) => setSelectedLessonMode(event.target.value as "test" | "practice" | "words" | null || null)} className="w-full border border-primary/20 bg-black px-3 py-2 text-sm outline-none focus:border-primary/60">
+                    <option value="">Select mode…</option>
+                    <option value="test">Typing Test</option>
+                    <option value="practice">Typing Practice</option>
+                    <option value="words">Word Test</option>
+                  </select>
+                </div>
+
+                {/* Step 2: Difficulty (if test or practice) */}
+                {selectedLessonMode && selectedLessonMode !== "words" && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">2. Select difficulty</label>
+                    <div className="flex gap-2">
+                      {["easy", "medium", "hard"].map((diff) => (
+                        <button
+                          key={diff}
+                          type="button"
+                          onClick={() => setSelectedLessonDifficulty(diff as "easy" | "medium" | "hard")}
+                          className={`flex-1 border px-3 py-2 text-sm transition ${selectedLessonDifficulty === diff ? "border-primary/50 bg-primary text-black" : "border-primary/20 text-primary hover:border-primary/40"}`}
+                        >
+                          {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Lesson Config Display */}
+                {selectedLessonMode && (
+                  <div className="border border-primary/20 bg-primary/[0.05] p-3 text-sm">
+                    <p className="text-primary/70">
+                      Lesson will be tagged as: <span className="font-medium text-primary">
+                        {selectedLessonMode === "test" ? "Typing test" : selectedLessonMode === "practice" ? "Typing practice" : "Word test"}
+                        {selectedLessonMode !== "words" && ` · ${selectedLessonDifficulty.charAt(0).toUpperCase() + selectedLessonDifficulty.slice(1)}`}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Lesson Content */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">3. Lesson title</label>
+                  <input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="Lesson title…" className="w-full min-h-11 border border-primary/20 bg-black px-3 text-sm outline-none focus:border-primary/60" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">4. Lesson passage</label>
+                  <textarea value={lessonText} onChange={(event) => setLessonText(event.target.value)} placeholder="Lesson passage…" rows={5} className="w-full border border-primary/20 bg-black px-3 py-3 text-sm outline-none focus:border-primary/60" />
+                </div>
+
+                <button disabled={!selectedLessonMode} className="w-full bg-primary px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
+                  Add lesson
+                </button>
+              </form>
+            )}
+
+            {/* Display existing lessons */}
+            <div className="mt-6 space-y-3">
+              {lessons.map((lesson) => (
+                <article key={lesson.id} className="border border-primary/10 p-4">
+                  <p className="text-sm font-medium">{lesson.title}</p>
+                  <p className="mt-2 text-xs leading-5 text-primary/55">{lesson.text}</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-emerald-200">
+                      <Check className="h-3 w-3" /> {lesson.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                    {lesson.focus && <span className="text-[10px] text-primary/50">{lesson.focus}</span>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "inbox" && (
+        <section className="mt-8 space-y-3">
+          {messages.length ? (
+            messages.map((message) => (
+              <article key={message.id} className={`border p-5 ${message.seen ? "border-primary/10" : "border-primary/40 bg-primary/[0.04]"}`}>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row">
+                  <div>
+                    <p className="text-sm font-medium">{message.subject}</p>
+                    <p className="mt-1 text-xs text-primary/50">{message.name} · {message.email} · {dateLabel(message.createdAt)}</p>
+                  </div>
+                  {message.seen ? (
+                    <span className="text-xs text-primary/40">Seen</span>
+                  ) : (
+                    <button type="button" onClick={() => void markSeen(message)} className="text-xs text-primary underline underline-offset-4">
+                      Mark seen
+                    </button>
+                  )}
+                </div>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-primary/70">{message.message}</p>
+              </article>
+            ))
+          ) : (
+            <p className="border border-dashed border-primary/15 p-8 text-sm text-primary/50">No contact messages yet.</p>
+          )}
+        </section>
+      )}
+
+      {activeTab === "users" && (
+        <section className="mt-8 border border-primary/15">
+          <div className="flex items-center justify-between border-b border-primary/10 p-4 text-xs uppercase tracking-[0.14em] text-primary/40">
+            <span>Name</span>
+            <span>Email</span>
+            <span>{isSuperAdmin ? "Role" : "Access"}</span>
+          </div>
+          {users.map((record) => (
+            <div key={record.id} className="grid grid-cols-[1fr_1fr_120px] items-center gap-4 border-b border-primary/10 p-4 text-sm">
+              <span className="truncate">{record.name || "Unnamed user"}</span>
+              <span className="truncate text-primary/55">{record.email}</span>
+              {isSuperAdmin ? (
+                <select value={record.role ?? "user"} onChange={(event) => void changeRole(record, event.target.value)} className="border border-primary/15 bg-black px-2 py-2 text-xs text-primary">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              ) : (
+                <span className="text-xs text-primary/45">Restricted</span>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {activeTab === "settings" && (
+        <section className="mt-8 max-w-xl border border-primary/15 p-5">
+          <h2 className="text-xl font-medium">Certificate criteria</h2>
+          <p className="mt-2 text-sm leading-6 text-primary/55">Server-side certificate issuance reads these values from Firestore.</p>
+          <form onSubmit={saveCriteria} className="mt-5 space-y-4">
+            <label className="block text-sm">
+              Minimum raw WPM
+              <input type="number" min="1" value={criteria.minRawWpm} onChange={(event) => setCriteria({ ...criteria, minRawWpm: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" />
+            </label>
+            <label className="block text-sm">
+              Minimum accuracy
+              <input type="number" min="1" max="100" value={criteria.minAccuracy} onChange={(event) => setCriteria({ ...criteria, minAccuracy: Number(event.target.value) })} className="mt-2 min-h-11 w-full border border-primary/20 bg-black px-3 outline-none" />
+            </label>
+            <button className="bg-primary px-4 py-2 text-sm font-semibold text-black">Save criteria</button>
+          </form>
+        </section>
+      )}
     </main>
   );
 }

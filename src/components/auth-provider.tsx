@@ -21,6 +21,8 @@ import { auth, db } from "@/lib/firebase-client";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
   signInWithGoogle: () => Promise<User>;
   signInWithEmail: (email: string, password: string) => Promise<User>;
   signUpWithEmail: (name: string, email: string, password: string) => Promise<User>;
@@ -57,6 +59,8 @@ async function saveUserProfile(user: User, name?: string) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const active = true;
@@ -65,13 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setUser(nextUser);
       setLoading(false);
-      if (nextUser) void saveUserProfile(nextUser).catch(() => undefined);
+      if (nextUser) {
+        void saveUserProfile(nextUser).catch(() => undefined);
+        void nextUser.getIdTokenResult(true).then((token) => {
+          setIsAdmin(token.claims.admin === true);
+          setIsSuperAdmin(token.claims.superAdmin === true || token.claims.role === "super_admin");
+        }).catch(() => undefined);
+      } else {
+        setIsAdmin(false);
+        setIsSuperAdmin(false);
+      }
     });
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
     loading,
+    isAdmin,
+    isSuperAdmin,
     signInWithGoogle: async () => {
       try {
         const result = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -120,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await sendEmailVerification(auth.currentUser);
     },
     logout: () => signOut(auth),
-  }), [loading, user]);
+  }), [loading, user, isAdmin, isSuperAdmin]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Clock3, Sparkles } from "lucide-react";
 import { useState } from "react";
-import type { TypingMode } from "@/lib/typing-modes";
+import type { TypingMode, DifficultyLevel } from "@/lib/typing-modes";
 import { useFirestoreLessons } from "@/lib/firestore-lessons";
 
 type DurationLessonPickerProps = { mode: Exclude<TypingMode, "words">; duration: number };
 
+const difficulties: DifficultyLevel[] = ["easy", "medium", "hard"];
+
 export default function DurationLessonPicker({ mode, duration }: DurationLessonPickerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>("medium");
   const { lessons: firestoreLessons, loading, error } = useFirestoreLessons(`${mode === "practice" ? "practice" : "timed"}-${duration}-minute`);
   const lessons = firestoreLessons.map((item) => ({ id: item.id, title: item.title, label: `Lesson ${String(item.order).padStart(2, "0")}`, preview: item.text, description: item.focus ?? "Focused typing practice." }));
   const lesson = lessons[Math.min(activeIndex, Math.max(lessons.length - 1, 0))];
-  const startHref = lesson ? `/test?mode=${mode}&duration=${duration}&lesson=${lesson.id}` : "#";
+  const startHref = lesson ? `/test?mode=${mode}&duration=${duration}&lesson=${lesson.id}&difficulty=${selectedDifficulty}` : "#";
   const move = (direction: number) => setActiveIndex((current) => (current + direction + lessons.length) % lessons.length);
   const sessionLabel = mode === "practice" ? "practice" : "test";
 
@@ -35,6 +38,26 @@ export default function DurationLessonPicker({ mode, duration }: DurationLessonP
             <p className="text-[10px] uppercase tracking-[0.18em] text-black/45">Lesson preview</p>
                 <p className="mt-3 text-lg font-medium leading-relaxed tracking-[-0.02em] sm:text-xl">{lesson?.preview ?? "The lesson preview will appear here when Firestore responds."}</p>
                 <p className="mt-3 text-xs leading-5 text-black/55">{lesson?.description ?? "No local placeholder lesson is being shown."}</p>
+          </div>
+
+          <div className="mt-5 border-t border-black/10 pt-5">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-black/45">Difficulty</p>
+            <div className="mt-3 flex gap-2">
+              {difficulties.map((diff) => (
+                <button
+                  key={diff}
+                  type="button"
+                  onClick={() => setSelectedDifficulty(diff)}
+                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition ${
+                    selectedDifficulty === diff
+                      ? "border border-black bg-black text-primary"
+                      : "border border-black/20 bg-white/50 text-black hover:bg-white"
+                  }`}
+                >
+                  {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="mt-5 grid gap-2 text-xs text-black/60 sm:grid-cols-3">

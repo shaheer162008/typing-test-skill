@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 
@@ -10,6 +10,8 @@ type AuthFormProps = { mode: "login" | "signup" };
 export default function AuthForm({ mode }: AuthFormProps) {
   const isSignup = mode === "signup";
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,6 +19,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const handleAuthSuccess = () => {
+    try {
+      router.push(decodeURIComponent(redirectUrl));
+    } catch {
+      router.push("/dashboard");
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -31,7 +41,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         setPassword("");
       } else {
         await signInWithEmail(email, password);
-        router.push("/dashboard");
+        handleAuthSuccess();
       }
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Authentication failed. Please try again.");
@@ -45,7 +55,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
     setBusy(true);
     try {
       await signInWithGoogle();
-      router.push("/dashboard");
+      handleAuthSuccess();
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Google sign-in failed. Please try again.");
     } finally {

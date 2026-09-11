@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "@/components/navbar";
-import { ArrowRight, Award, BarChart3, BookOpen, RotateCcw } from "lucide-react";
-import Link from "next/link";
 import { getDifficultyLabel, normalizeDifficulty, type DifficultyLevel, type TypingMode } from "@/lib/typing-modes";
 import { getTargetText } from "@/lib/typing-passage";
 import { useAuth } from "@/components/auth-provider";
 import { useFirestoreLessons } from "@/lib/firestore-lessons";
+import ResultModal from "@/components/result-modal";
 
 const keyboardRows = [
   ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],
@@ -36,6 +35,7 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
   const savedResultRef = useRef(false);
   const submittedResultRef = useRef(false);
   const sessionRef = useRef<{ sessionId: string; nonce: string } | null>(null);
@@ -52,7 +52,17 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
   const finishedByTime = Boolean(timeLimitMs && elapsedMs >= timeLimitMs);
   const completed = mode === "words" ? typed.length >= targetText.length : finishedByTime || typed.length >= targetText.length;
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (completed && !showResultModal) {
+      setShowResultModal(true);
+    }
+  }, [completed, showResultModal]);
+
+  useEffect(() => {
+    if (!completed) {
+      inputRef.current?.focus();
+    }
+  }, [completed]);
 
   useEffect(() => {
     sessionRef.current = null;
@@ -176,21 +186,111 @@ export default function TypingTestPage({ mode, durationMinutes, wordCount, lesso
   }, [accuracy, completed, durationMinutes, mode, mistakes, typed.length, wordCount, wpm]);
 
   if (completed) {
-    const sessionTitle = mode === "words" ? `${wordCount}-word ${getDifficultyLabel(normalizedDifficulty).toLowerCase()} test` : `${durationMinutes}-minute ${mode === "practice" ? "practice" : "typing test"} · ${getDifficultyLabel(normalizedDifficulty)}`;
-    const completionTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date());
     return (
-      <div className="min-h-screen bg-[#080808] text-primary">
-        <Navbar />
-        <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
-          <div className="border-b border-primary/10 pb-7"><p className="text-[10px] uppercase tracking-[0.2em] text-primary/45">Session complete</p><h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] sm:text-6xl">A clear result to build on.</h1><p className="mt-4 text-sm text-primary/50">{sessionTitle} · Completed {completionTime}</p></div>
-          <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Test result summary">
-            {[["WPM", wpm], ["Accuracy", `${accuracy}%`], [timeLimitMs ? "Time used" : "Completion time", timeLimitMs ? `${Math.round(elapsedMs / 1000)}s` : `${Math.round(elapsedMs / 1000)}s`], ["Mistakes", mistakes]].map(([label, value]) => <article key={String(label)} className="border border-primary/15 bg-white/[0.025] p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-primary/40">{label}</p><p className="mt-3 text-3xl font-medium">{value}</p></article>)}
-          </section>
-          <section className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="border border-primary/15 bg-white/[0.02] p-6 sm:p-8"><div className="flex items-center gap-3"><BarChart3 className="h-5 w-5 text-primary/60" /><h2 className="text-2xl font-medium">What to do next</h2></div><p className="mt-4 max-w-xl text-sm leading-7 text-primary/55">Your result is saved as a session preview. Keep accuracy above 95%, then repeat a longer test to make your speed more consistent.</p><div className="mt-7 grid gap-3 sm:grid-cols-3"><Link href="/dashboard" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><BarChart3 className="h-4 w-4" /><span className="mt-5 block">Open dashboard</span></Link><Link href="/typing-practice" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><BookOpen className="h-4 w-4" /><span className="mt-5 block">Practice weak spots</span></Link><Link href="/certificates" className="border border-primary/20 p-4 text-sm transition hover:border-primary/50"><Award className="h-4 w-4" /><span className="mt-5 block">See certificates</span></Link></div></div>
-            <div className="border border-primary/15 bg-primary/[0.06] p-6 sm:p-8"><p className="text-[10px] uppercase tracking-[0.18em] text-primary/45">Ready for another round?</p><h2 className="mt-3 text-2xl font-medium">Turn this score into a habit.</h2><div className="mt-7 grid gap-3"><button type="button" onClick={resetTest} className="flex items-center justify-between bg-primary px-4 py-3 text-sm font-semibold text-black">Try again <RotateCcw className="h-4 w-4" /></button><Link href="/typing-test" className="flex items-center justify-between border border-primary/20 px-4 py-3 text-sm">Choose another duration <ArrowRight className="h-4 w-4" /></Link></div></div>
-          </section>
+      <div className="flex h-dvh flex-col overflow-hidden bg-[#080808] text-primary">
+        <div className="shrink-0">
+          <Navbar />
+        </div>
+
+        <main className="mx-auto flex w-full max-w-[1360px] min-h-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-6 lg:px-9 lg:py-5">
+          <p className="mb-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-primary/45">Typing test</p>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-5">
+            <aside className="hidden min-h-0 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 sm:p-5 lg:flex opacity-50 pointer-events-none">
+              <div className="mb-3 shrink-0 text-[10px] uppercase tracking-[0.18em] text-primary/45">Live stats</div>
+              <div className="grid shrink-0 grid-cols-2 gap-2.5">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="rounded-lg bg-black/55 px-2 py-4 text-center">
+                    <div className="mt-2 font-variant-numeric tabular-nums text-xl font-medium">{stat.value}</div>
+                    <div className="text-[9px] uppercase tracking-[0.14em] text-primary/40">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="min-h-0 flex-1" />
+
+              <div className="shrink-0 border-t border-primary/10 pt-4">
+                <div className="mb-3 text-[10px] uppercase tracking-[0.18em] text-primary/45">Keyboard</div>
+                <div className="flex flex-col gap-1.5">
+                  {keyboardRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex gap-1">
+                      {row.map((key) => (
+                        <div
+                          key={key}
+                          style={{ flexGrow: keyWidth[key] ?? 1, flexBasis: 0 }}
+                          className={`flex h-8 items-center justify-center rounded-md border text-[9px] font-medium transition-colors ${
+                            pressedKey === key ? "border-primary bg-primary text-black" : "border-primary/15 bg-black text-primary/70"
+                          }`}
+                        >
+                          {key}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            <section className="flex min-h-0 flex-col opacity-50 pointer-events-none">
+              <div className="mb-3 flex shrink-0 items-center justify-between text-[10px] uppercase tracking-[0.16em] text-primary/40">
+                <span>Session complete</span>
+                <span>{typed.length}/{targetText.length} chars</span>
+              </div>
+
+              <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-primary/15 bg-white/[0.025] p-4 shadow-[0_20px_80px_rgba(0,0,0,0.2)] sm:p-6">
+                <div
+                  className="relative flex min-h-0 flex-1 cursor-text flex-col rounded-xl border border-primary/10 bg-black/25 px-5 py-5 transition-colors sm:px-6 sm:py-6"
+                >
+                  <div
+                    ref={scrollBoxRef}
+                    className="min-h-0 flex-1 overflow-hidden text-[18px] font-medium leading-[34px] text-primary/50 sm:text-[19px] sm:leading-[34px]"
+                  >
+                    {targetText.split("").map((char, index) => {
+                      const typedChar = typed[index];
+                      const isCorrect = typedChar !== undefined && typedChar === char;
+                      const isWrong = typedChar !== undefined && typedChar !== char;
+
+                      let className = "relative rounded-sm";
+                      if (isWrong) {
+                        className += " bg-red-500/30 text-red-300 underline decoration-red-400 decoration-2 underline-offset-[3px]";
+                      } else if (isCorrect) {
+                        className += " text-white";
+                      } else {
+                        className += " text-primary/50";
+                      }
+
+                      return (
+                        <span key={index} className={className}>
+                          {char}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-3 text-xs text-primary/40">
+                  <span>Strict mode · completed words stay locked</span>
+                </div>
+              </div>
+            </section>
+          </div>
         </main>
+
+        {showResultModal && (
+          <ResultModal
+            wpm={wpm}
+            accuracy={accuracy}
+            mistakes={mistakes}
+            elapsedMs={elapsedMs}
+            mode={mode}
+            durationMinutes={durationMinutes}
+            wordCount={wordCount}
+            difficulty={normalizedDifficulty}
+            completedAt={new Date()}
+            onClose={() => setShowResultModal(false)}
+            onRetry={resetTest}
+          />
+        )}
       </div>
     );
   }

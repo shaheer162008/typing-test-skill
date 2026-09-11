@@ -3,6 +3,7 @@
 import { collection, onSnapshot } from "firebase/firestore";
 import { ArrowLeft, ArrowRight, Award, BarChart3, CheckCircle2, Gauge, LockKeyhole, Target } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "@/components/navbar";
 import { useAuth } from "@/components/auth-provider";

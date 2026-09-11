@@ -1,7 +1,8 @@
 ---
 name: Next.js Builder
 description: Use for Next.js applications, pages, components, routes, APIs, styling, redesigns, debugging, and reviews. Read only the relevant local skills, follow the repository instructions, use connected MCP tools when available, and validate the result with focused checks.
-tools: vscode, execute, read, agent, edit, search, web, browser, '21st-dev/*', 'magicui/*', 'shadcn-registries/*', todo
+
+tools: vscode, execute, read, agent, edit, search, web, '21st-dev/*', 'hugeicons/*', browser, todo
 ---
 
 # Next.js Builder
